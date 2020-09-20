@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  interlocutor-dev:
+    build: ./
+    container_name: interlocutor-dev
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/usr/src/app
