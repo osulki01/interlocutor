@@ -13,6 +13,8 @@ USER $username
 # Ensure current host directory containing Pipfile.lock is available and create virtual environment
 WORKDIR /usr/src/app
 COPY . .
+# Make progress bar visible
+ENV PIPENV_COLORBLIND=1
 RUN pipenv sync --dev
 
 # Keep container running in detached mode, so execute a meaningless command in the foreground
