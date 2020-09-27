@@ -7,8 +7,12 @@ verify_ssl = true
 pytest = "*"
 
 [packages]
+appnope = "*"
+beautifulsoup4 = "*"
 jupyterlab = "*"
 pandas = "*"
+requests = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.7"
