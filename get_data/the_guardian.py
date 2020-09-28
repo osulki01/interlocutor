@@ -1,6 +1,5 @@
 # Standard libraries
 import time
-import math
 import os
 from typing import Any, Dict
 
@@ -81,15 +80,38 @@ def get_article_content(article_api_url: str) -> str:
     return article_content_text
 
 
-def record_opinion_articles() -> pd.DataFrame:
+def _get_latest_opinion_articles_page_reached(file_name_or_path: str) -> int:
     """
-    Create a dataframe storing all of articles appearing in The Guardian Opinion section
-    (https://www.theguardian.com/uk/commentisfree) and how they can be accessed via the API.
+    The latest page index reached by previous efforts to extract all artucles from the Opinion section.
+
+    Parameters
+    ----------
+    file_name_or_path : str
+        File which contains how many API pages' metadata has been stored already.
 
     Returns
     -------
-    pd.DataFrame
-        One row per article in The Guardian Opinion section containing metadata about the article.
+    int
+        Page index which had been reached (1 if no history of previous attempts exists).
+    """
+
+    if os.path.isfile(file_name_or_path):
+        with open(file=file_name_or_path, mode='rt') as opened_file:
+            contents_of_file = opened_file.read()
+            page_index_reached = int(contents_of_file.split(' ')[0])
+    else:
+        page_index_reached = 1
+
+    return page_index_reached
+
+
+def record_opinion_articles():
+    """
+    Save a dataframe to disk storing all of articles appearing in The Guardian Opinion section
+    (https://www.theguardian.com/uk/commentisfree) and how they can be accessed via the API.
+
+    Dataframe contains one row per article in The Guardian Opinion section containing metadata about the article, and is
+    saved to 'data/the_guardian/opinion_articles_metadata.csv'
     """
 
     opinion_section_url = 'https://content.guardianapis.com/commentisfree/commentisfree'
@@ -100,35 +122,57 @@ def record_opinion_articles() -> pd.DataFrame:
     opinion_section_metadata = _call_api_and_handle_errors(url=opinion_section_url, params={'page-size': page_size})
     total_pages = opinion_section_metadata['response']['pages']
 
-    opinion_articles_per_api_call = []
+    progress_file = 'data/the_guardian/opinion_articles_page_index_reached.txt'
+    page_index_already_reached = _get_latest_opinion_articles_page_reached(file_name_or_path=progress_file)
+    pages_left = range(page_index_already_reached, (total_pages + 1))
+
+    # Call API to record remaining articles
+    opinion_articles_metadata_per_api_call = []
 
     for page_index in tqdm.tqdm(
             desc='API pages processed',
-            iterable=range(1, (total_pages + 1)),
-            total=total_pages,
+            iterable=pages_left,
+            total=len(pages_left),
             unit=' page'
     ):
 
         try:
-            opinion_articles_json = _call_api_and_handle_errors(
+            opinion_articles_metdata_json = _call_api_and_handle_errors(
                 url=opinion_section_url,
                 params={'page': page_index, 'page-size': page_size, 'orderBy': 'oldest'}
             )
 
-            opinion_articles_df = pd.DataFrame.from_dict(opinion_articles_json['response']['results'])
+            opinion_articles_metadata_df = pd.DataFrame.from_dict(opinion_articles_metdata_json['response']['results'])
 
-            opinion_articles_per_api_call.append(opinion_articles_df)
+            opinion_articles_metadata_per_api_call.append(opinion_articles_metadata_df)
 
             # Be polite, do not bombard API with too many requests at once
             time.sleep(2)
 
         except requests.exceptions.RequestException as request_error:
-            print(f'Error making API request on Page {page_index} of {api_calls_required}')
+            print(f'Error making API request on Page {page_index} of {total_pages}')
             print('Possibly hit limit of API calls for the day')
             print(f'Exception: {request_error}')
 
+            # Record how much progress was made
+            with open(file=progress_file, mode='wt') as opened_file:
+                opened_file.write(f'{page_index} of {total_pages} processed already')
+
             break
 
-    all_opinion_articles = pd.concat(opinion_articles_per_api_call)
+    all_opinion_articles = pd.concat(opinion_articles_metadata_per_api_call)
 
-    return all_opinion_articles.reset_index()
+    # Save the metadata already gathered to disk
+    opinion_article_metadata_file = 'data/the_guardian/opinion_articles_metadata.csv'
+    if os.path.isfile(opinion_article_metadata_file):
+        write_mode = 'a'
+        header = False
+    else:
+        write_mode = 'w'
+        header = True
+
+    all_opinion_articles.reset_index().to_csv(
+        path_or_buf=opinion_article_metadata_file,
+        mode=write_mode,
+        header=header
+    )
