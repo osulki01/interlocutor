@@ -2,6 +2,7 @@
 import time
 import math
 import os
+from typing import Any, Dict
 
 # Third party libraries
 from bs4 import BeautifulSoup
@@ -10,9 +11,9 @@ import pandas as pd
 import tqdm
 
 
-def _call_api_and_handle_errors(url: str, params: dict = None) -> dict:
+def _call_api_and_handle_errors(url: str, params: dict = None) -> Dict[str, Any]:
     """
-    Make call to Guardian API using authentication key from .env file and displays any errors which occur.
+    Make call to Guardian API using authentication key from .env file and display any errors which occur.
 
     Parameters
     ----------
@@ -29,7 +30,8 @@ def _call_api_and_handle_errors(url: str, params: dict = None) -> dict:
 
     Returns
     -------
-
+    Dict[str, Any]
+        Dictionary version of the API response object.
     """
 
     # Use api-key from environment variable and assume a json should be returned, but allow this payload to be
@@ -92,32 +94,25 @@ def record_opinion_articles() -> pd.DataFrame:
 
     opinion_section_url = 'https://content.guardianapis.com/commentisfree/commentisfree'
 
-    # Make call, only to find out how many articles can be pulled
-    opinion_section_metadata = _call_api_and_handle_errors(url=opinion_section_url)
-
-    total_articles = opinion_section_metadata['response']['total']
-
     # The free Guardian API key only allows 500 calls per day, but only a certain number of articles can be pulled with
-    # each call (max 200 articles), so work back as many times as possible
+    # each call (max 200 articles), so calculate how many pages have to be called to cover all articles
     page_size = 200
-
-    api_calls_required = math.ceil(total_articles / page_size)
-
-    page_size = math.ceil(total_articles / api_calls_required)
+    opinion_section_metadata = _call_api_and_handle_errors(url=opinion_section_url, params={'page-size': page_size})
+    total_pages = opinion_section_metadata['response']['pages']
 
     opinion_articles_per_api_call = []
 
     for page_index in tqdm.tqdm(
             desc='API pages processed',
-            iterable=range(1, (api_calls_required + 1)),
-            total=api_calls_required,
+            iterable=range(1, (total_pages + 1)),
+            total=total_pages,
             unit=' page'
     ):
 
         try:
             opinion_articles_json = _call_api_and_handle_errors(
                 url=opinion_section_url,
-                params={'page': page_index, 'page-size': page_size}
+                params={'page': page_index, 'page-size': page_size, 'orderBy': 'oldest'}
             )
 
             opinion_articles_df = pd.DataFrame.from_dict(opinion_articles_json['response']['results'])
@@ -129,7 +124,7 @@ def record_opinion_articles() -> pd.DataFrame:
 
         except requests.exceptions.RequestException as request_error:
             print(f'Error making API request on Page {page_index} of {api_calls_required}')
-            print('Possibly hit limit of 500 API calls for the day')
+            print('Possibly hit limit of API calls for the day')
             print(f'Exception: {request_error}')
 
             break
