@@ -15,7 +15,7 @@ def retry(total_attempts) -> Callable:
     """
     Execute the decorated function which calls an API using the requests function, and retry a specified number of
     times if it encounters an exception (assumes that the function which makes the request explicitly raises an
-    exception.
+    exception).
 
     Parameters
     ----------
@@ -189,7 +189,7 @@ class ArticleDownloader:
 
         # The free Guardian API key only allows 500 calls per day, but only a certain number of articles can be pulled
         # with each call (max 200 articles), so calculate how many pages have to be called to cover all articles
-        page_size = 2
+        page_size = 200
 
         most_recent_datetime = self._get_latest_opinion_articles_datetime_reached()
 
@@ -198,10 +198,6 @@ class ArticleDownloader:
             params={'page-size': page_size, 'from-date': most_recent_datetime}
         )
         total_pages = opinion_section_metadata['response']['pages']
-
-        print('\n')
-        print('*' * 50)
-        print(opinion_section_metadata)
 
         # Call API to record remaining articles
         opinion_articles_metadata_per_api_call = []
@@ -212,9 +208,6 @@ class ArticleDownloader:
                 total=total_pages,
                 unit=' page'
         ):
-
-            if page_index == 4:
-                break
 
             try:
                 opinion_articles_metadata_json = self._call_api_and_display_exceptions(
