@@ -1,17 +1,19 @@
 # Standard libraries
+import collections
 import functools
-import time
 import os
-from typing import Any, Callable, Dict, Union
+import time
+from typing import Any, Callable, Dict, Tuple, Union
 
 # Third party libraries
 from bs4 import BeautifulSoup
-import requests
+import numpy as np
 import pandas as pd
+import requests
 import tqdm
 
 
-def retry(total_attempts) -> Callable:
+def retry(total_attempts: int, exceptions_to_check: Union[Exception, Tuple[Exception]]) -> Callable:
     """
     Execute the decorated function which calls an API using the requests function, and retry a specified number of
     times if it encounters an exception (assumes that the function which makes the request explicitly raises an
@@ -20,17 +22,23 @@ def retry(total_attempts) -> Callable:
     Parameters
     ----------
     total_attempts : int
-        Number of times that the decorated function should attempt to be executed.
+        Number of times that the decorated function should attempt to be executed. Should be >= 2, otherwise the
+        decorated function will not retry.
+
+    exceptions_to_check : Exception, or Tuple of Exceptions
+        The types of Exception that mean the decorated function should retry.
 
     Returns
     -------
     Callable
-        Decorated version of function which will retry the requested number of times if it encounters an error.
+        Decorator function which alters the behaviour of a function to retry the requested number of times if it
+        encounters a specific Exception.
 
     Raises
     ------
-    requests.exceptions.RequestException
-        If maximum number of request attempts reached without success.
+    Exception
+        If maximum number of request attempts reached without success. The Exception is the type of Exception raised
+        by the decorated function on the final attempt.
     """
 
     def retry_decorator(func):
@@ -44,19 +52,20 @@ def retry(total_attempts) -> Callable:
                 try:
                     return func(*args, **kwargs)
 
-                except requests.RequestException as request_exception:
+                except exceptions_to_check as raised_exception:
 
                     print(f'Function {func.__name__} failed on attempt {attempt_number} of {total_attempts} total '
                           f'attempts.')
 
-                    if attempt_number == 3:
+                    if attempt_number == total_attempts:
                         print('Max attempts reached. Stopping now.')
-                        raise request_exception
+                        raise raised_exception
 
                     attempt_number += 1
                     print('Retrying now.')
 
         return func_with_retries
+
     return retry_decorator
 
 
@@ -177,21 +186,24 @@ class ArticleDownloader:
         return latest_web_publication_datetime
 
     # The Guardian API only allows you to progress through a certain number of pages, so retry and pick up from latest
-    # article reached if the method hits an error.
-    @retry(total_attempts=3)
-    def record_opinion_articles(self) -> None:
+    # article reached if the method hits an HTTP error.
+    @retry(total_attempts=5, exceptions_to_check=requests.exceptions.HTTPError)
+    def record_opinion_articles_metadata(self) -> None:
         """
         Save a dataframe to disk storing all of articles appearing in The Guardian Opinion section
         (https://www.theguardian.com/uk/commentisfree) and how they can be accessed via the API.
 
-        Dataframe contains one row per article in The Guardian Opinion section containing metadata about the article.
+        Dataframe contains one row per article in The Guardian Opinion section detailing metadata about the article.
         """
 
-        # The free Guardian API key only allows 500 calls per day, but only a certain number of articles can be pulled
-        # with each call (max 200 articles), so calculate how many pages have to be called to cover all articles
+        # Only a certain number of articles can be pulled with each call (max 200 articles), so calculate how many
+        # pages have to be called to cover all articles
         page_size = 200
 
         most_recent_datetime = self._get_latest_opinion_articles_datetime_reached()
+
+        if most_recent_datetime:
+            print(f'Articles published on or after {most_recent_datetime} will be processed.')
 
         opinion_section_metadata = self._call_api_and_display_exceptions(
             url=self._opinion_section_url,
@@ -237,7 +249,7 @@ class ArticleDownloader:
                 if opinion_articles_metadata_per_api_call is not None:
                     print(f'\nSaving metadata already pulled to {self._metadata_file}')
                     all_opinion_articles = pd.concat(opinion_articles_metadata_per_api_call)
-                    self._save_opinion_article_metadata_to_disk(all_opinion_articles)
+                    self._save_article_data_to_disk(all_opinion_articles)
 
                 else:
                     print('No article metadata pulled.')
@@ -246,15 +258,70 @@ class ArticleDownloader:
 
         print(f'\nAll articles processed, saving metadata to {self._metadata_file}')
         all_opinion_articles = pd.concat(opinion_articles_metadata_per_api_call)
-        self._save_opinion_article_metadata_to_disk(all_opinion_articles)
+        self._save_article_data_to_disk(all_opinion_articles)
 
-    def _save_opinion_article_metadata_to_disk(self, metadata: pd.DataFrame) -> None:
+    def record_opinion_articles_content(self) -> None:
+        """
+        Save a dataframe to disk storing the content of of articles appearing in The Guardian Opinion section
+        (https://www.theguardian.com/uk/commentisfree).
+
+        Dataframe contains one row per article in The Guardian Opinion section that has already been crawled to extract
+        its metadata.
+        """
+
+        if os.path.isfile(self._article_contents_file):
+            articles_to_crawl = pd.read_csv(filepath_or_buffer=self._article_contents_file, index_col='id')
+
+            # Duplicate articles may appear from originally the metadata caller as it picks up from the latest
+            # article data already retrieved each time it retries
+            articles_to_crawl.drop_duplicates(subset='id', inplace=True)
+
+        else:
+            articles_to_crawl = pd.read_csv(
+                filepath_or_buffer=self._metadata_file,
+                usecols=['id', 'apiUrl', 'webPublicationDate'],
+                index_col='id'
+            )
+
+            articles_to_crawl['content'] = ''
+            articles_to_crawl.sort_values(by='webPublicationDate', ascending=True, inplace=True)
+
+        next_article_to_pull_index = np.argmax(articles_to_crawl['content'] == '')
+        remaining_articles = articles_to_crawl.index[next_article_to_pull_index:]
+
+        for article_id in tqdm.tqdm(
+                desc='Article content retrieved',
+                iterable=remaining_articles,
+                total=len(remaining_articles),
+                unit=' article'
+        ):
+
+            article_api_url = articles_to_crawl.loc[article_id, 'apiUrl']
+
+            try:
+                article_content = self._get_article_content(article_api_url)
+                articles_to_crawl.loc[article_id, 'content'] = article_content
+
+            except requests.exceptions.RequestException as request_exception:
+                print(f'Error retrieving contents for article {article_api_url}')
+                print(f'Exception: {request_exception}')
+                print(f'\nSaving article content already pulled to {self._article_contents_file}')
+
+                articles_to_crawl.to_csv(self._article_contents_file)
+                raise request_exception
+
+            # Be polite, do not bombard API with too many requests at once
+            time.sleep(0.5)
+
+        print(f'\nSaving article content to {self._article_contents_file}')
+
+    def _save_article_data_to_disk(self, data: pd.DataFrame) -> None:
         """
         Save the articles metadata to a csv file (and append if it already exists).
 
         Parameters
         ----------
-        metadata : pandas.DataFrame
+        data : pandas.DataFrame
             Data describing the articles that have already been recorded.
         """
 
@@ -265,4 +332,4 @@ class ArticleDownloader:
             write_mode = 'w'
             header = True
 
-        metadata.to_csv(path_or_buf=self._metadata_file, header=header, index=False, mode=write_mode)
+        data.to_csv(path_or_buf=self._metadata_file, header=header, index=False, mode=write_mode)

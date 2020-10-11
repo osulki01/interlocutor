@@ -71,13 +71,15 @@ class TestRetry:
             (4, True, 3, 2)
         ]
     )
-    def test_retry(self, attempts_requested, successful_call_achieved, total_attempts_made, exceptions_raised):
+    def test_retry_correct_number_of_attempts(self, attempts_requested, successful_call_achieved, total_attempts_made, exceptions_raised):
         """Function decorated with the retry method retries an appropriate number of times."""
 
         retry_tracker = RetryTracker()
 
         try:
-            the_guardian.retry(total_attempts=attempts_requested)(self.succeed_on_third_request_attempt)(retry_tracker)
+            the_guardian.retry(
+                total_attempts=attempts_requested, exceptions_to_check=requests.exceptions.RequestException
+            )(self.succeed_on_third_request_attempt)(retry_tracker)
 
         # Ignore exception if function never succeeds in order to check its history of being called
         except requests.exceptions.RequestException:
@@ -86,6 +88,25 @@ class TestRetry:
         assert retry_tracker.attempt_count == total_attempts_made
         assert retry_tracker.successful_call == successful_call_achieved
         assert retry_tracker.exceptions_raised == exceptions_raised
+
+    def test_retry_stops_on_unexpected_exception(self):
+        """
+        Function decorated with the retry method will only retry if it is an exception that it was asked to handle.
+        """
+
+        retry_tracker = RetryTracker()
+
+        non_request_exception_type = KeyError
+
+        # Method should attempt once, raises an exception it was not asked to handle, and stops
+        with pytest.raises(requests.exceptions.RequestException):
+            the_guardian.retry(
+                total_attempts=3, exceptions_to_check=non_request_exception_type
+            )(self.succeed_on_third_request_attempt)(retry_tracker)
+
+        assert retry_tracker.attempt_count == 1
+        assert retry_tracker.successful_call is False
+        assert retry_tracker.exceptions_raised == 1
 
 
 def test_call_api_and_display_exceptions_raises_exception():
@@ -234,7 +255,7 @@ def test_record_opinion_articles(fs, monkeypatch):
     monkeypatch.setattr(article_downloader, "_call_api_and_display_exceptions", mock_api_call)
 
     # Call function in order to inspect output saved to disk
-    article_downloader.record_opinion_articles()
+    article_downloader.record_opinion_articles_metadata()
 
     # There are two pages in the mock data, so it is expected that the data would be pulled twice as we have forced the
     # API call to get the same response each time
@@ -284,7 +305,7 @@ def test_record_opinion_articles(fs, monkeypatch):
     pd.testing.assert_frame_equal(actual_metadata, expected_metadata)
 
 
-def test_save_opinion_article_metadata_to_disk(fs):
+def test_save_article_data_to_disk(fs):
     """Saves dataframe to file and appends if it already exists."""
 
     # Save data for the first time
@@ -293,7 +314,7 @@ def test_save_opinion_article_metadata_to_disk(fs):
 
     expected_first_wave_metadata = pd.DataFrame({'column_1': ['a', 'b'], 'column_2': [True, True]})
 
-    article_downloader._save_opinion_article_metadata_to_disk(expected_first_wave_metadata)
+    article_downloader._save_article_data_to_disk(expected_first_wave_metadata)
 
     actual_first_wave_metadata = pd.read_csv(mock_metadata_file)
 
@@ -302,7 +323,7 @@ def test_save_opinion_article_metadata_to_disk(fs):
     # Append data to file
     second_wave_of_metadata = pd.DataFrame({'column_1': ['c', 'd'], 'column_2': [False, False]})
 
-    article_downloader._save_opinion_article_metadata_to_disk(second_wave_of_metadata)
+    article_downloader._save_article_data_to_disk(second_wave_of_metadata)
 
     actual_total_metadata = pd.read_csv(mock_metadata_file)
 
