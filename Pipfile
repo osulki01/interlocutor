@@ -10,10 +10,13 @@ pytest = "*"
 [packages]
 appnope = "*"
 beautifulsoup4 = "*"
-jupyterlab = "*"
+jupyter = "*"
+numpy = "*"
 pandas = "*"
 requests = "*"
+tensorflow = "*"
 tqdm = "*"
+transformers = "*"
 
 [requires]
 python_version = "3.7"
