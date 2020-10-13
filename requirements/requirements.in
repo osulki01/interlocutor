@@ -1,0 +1,11 @@
+beautifulsoup4
+jupyter
+numpy
+pandas
+pyfakefs
+psycopg2
+pytest
+requests
+tensorflow
+tqdm
+transformers
