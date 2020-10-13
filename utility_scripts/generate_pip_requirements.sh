@@ -1,1 +1,1 @@
-.venv/bin/pip-compile --output-file requirements/requirements.txt requirements/requirements.in
+.venv/bin/pip-compile --output-file python_requirements/requirements.txt python_requirements/requirements.in
