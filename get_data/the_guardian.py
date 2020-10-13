@@ -1,5 +1,4 @@
 # Standard libraries
-import collections
 import functools
 import os
 import time
@@ -284,10 +283,12 @@ class ArticleDownloader:
             )
 
             articles_to_crawl['content'] = ''
-            articles_to_crawl.sort_values(by='webPublicationDate', ascending=True, inplace=True)
+            articles_to_crawl.sort_values(by='webPublicationDate', ascending=False, inplace=True)
 
         next_article_to_pull_index = np.argmax(articles_to_crawl['content'] == '')
         remaining_articles = articles_to_crawl.index[next_article_to_pull_index:]
+
+        counter = 0
 
         for article_id in tqdm.tqdm(
                 desc='Article content retrieved',
@@ -302,6 +303,8 @@ class ArticleDownloader:
                 article_content = self._get_article_content(article_api_url)
                 articles_to_crawl.loc[article_id, 'content'] = article_content
 
+                counter += 1
+
             except requests.exceptions.RequestException as request_exception:
                 print(f'Error retrieving contents for article {article_api_url}')
                 print(f'Exception: {request_exception}')
@@ -312,6 +315,12 @@ class ArticleDownloader:
 
             # Be polite, do not bombard API with too many requests at once
             time.sleep(0.5)
+
+            if counter % 50 == 0:
+
+                print(f'Checkpoint, article {counter} reached.')
+                print(f'\nSaving article content already pulled to {self._article_contents_file}')
+                articles_to_crawl.to_csv(self._article_contents_file)
 
         print(f'\nSaving article content to {self._article_contents_file}')
 
