@@ -1,11 +1,13 @@
 # Standard libraries
 import functools
 import os
+import pathlib
 import time
 from typing import Any, Callable, Dict, Tuple, Union
 
 # Third party libraries
 from bs4 import BeautifulSoup
+import dotenv
 import numpy as np
 import pandas as pd
 import requests
@@ -75,19 +77,24 @@ class ArticleDownloader:
 
     def __init__(
             self,
-            article_contents_file: str = 'data/the_guardian/opinion_articles_contents.csv',
-            metadata_file: str = 'data/the_guardian/opinion_articles_metadata.csv'
+            article_contents_file: str = '../data/the_guardian/opinion_articles_contents.csv',
+            metadata_file: str = '../data/the_guardian/opinion_articles_metadata.csv'
     ):
         """
         Parameters
         ----------
-        article_contents_file : str (default 'data/the_guardian/opinion_articles_contents.csv')
+        article_contents_file : str (default '../data/the_guardian/opinion_articles_contents.csv')
             File name/path which contains the text content of the articles.
-        metadata_file : str (default 'data/the_guardian/opinion_articles_contents.csv')
+        metadata_file : str (default '../data/the_guardian/opinion_articles_contents.csv')
             File name/path which contains metadata about the articles which have already been stored.
         """
 
+        # Load API key from the root directory of this project
+        parent_directory = os.path.dirname(os.path.abspath(__file__))
+        project_root = pathlib.Path(parent_directory).parent.parent
+        dotenv.load_dotenv(dotenv_path=f"{str(project_root)}/.env")
         self._api_key = os.getenv('GUARDIAN_API_KEY')
+
         self._article_contents_file = article_contents_file
         self._metadata_file = metadata_file
         self._opinion_section_url = 'https://content.guardianapis.com/commentisfree/commentisfree'
@@ -259,21 +266,30 @@ class ArticleDownloader:
         all_opinion_articles = pd.concat(opinion_articles_metadata_per_api_call)
         self._save_article_data_to_disk(all_opinion_articles)
 
-    def record_opinion_articles_content(self) -> None:
+    def record_opinion_articles_content(self, number_of_articles: int = 100) -> None:
         """
         Save a dataframe to disk storing the content of of articles appearing in The Guardian Opinion section
         (https://www.theguardian.com/uk/commentisfree).
 
+        Storing all of the text can be expensive so iterate through a specified number of articles, working from the
+        most recently published articles backwards.
+
         Dataframe contains one row per article in The Guardian Opinion section that has already been crawled to extract
         its metadata.
+
+        Parameters
+        ----------
+        number_of_articles : int (default 100)
+            Number of articles to iterate through and extract their contents.
         """
 
         if os.path.isfile(self._article_contents_file):
-            articles_to_crawl = pd.read_csv(filepath_or_buffer=self._article_contents_file, index_col='id')
+            articles_to_crawl = pd.read_csv(filepath_or_buffer=self._article_contents_file)
 
             # Duplicate articles may appear from originally the metadata caller as it picks up from the latest
             # article data already retrieved each time it retries
             articles_to_crawl.drop_duplicates(subset='id', inplace=True)
+            articles_to_crawl.set_index('id', inplace=True)
 
         else:
             articles_to_crawl = pd.read_csv(
@@ -282,11 +298,13 @@ class ArticleDownloader:
                 index_col='id'
             )
 
-            articles_to_crawl['content'] = ''
+            articles_to_crawl['content'] = np.nan
             articles_to_crawl.sort_values(by='webPublicationDate', ascending=False, inplace=True)
 
-        next_article_to_pull_index = np.argmax(articles_to_crawl['content'] == '')
-        remaining_articles = articles_to_crawl.index[next_article_to_pull_index:]
+        next_article_to_pull_index = np.argmax(articles_to_crawl['content'].isna())
+        remaining_articles = articles_to_crawl.index[
+                             next_article_to_pull_index:(next_article_to_pull_index + number_of_articles)
+                             ]
 
         counter = 0
 
@@ -323,6 +341,7 @@ class ArticleDownloader:
                 articles_to_crawl.to_csv(self._article_contents_file)
 
         print(f'\nSaving article content to {self._article_contents_file}')
+        articles_to_crawl.to_csv(self._article_contents_file)
 
     def _save_article_data_to_disk(self, data: pd.DataFrame) -> None:
         """
