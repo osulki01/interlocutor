@@ -1,13 +1,21 @@
 version: "3.8"
 
 services:
-  interlocutor-dev:
-    build: ./
-    container_name: interlocutor-dev
-    env_file: .env
+  dev:
+    build: ./Docker/dev
+    container_name: dev
+    env_file:
+      - .env
     ports:
       - "8888:8888"
-      - "5432:5432"
     volumes:
       - ./:/usr/src/app
-      - ./data/postgres/:/var/lib/postgresql/data
+
+  db:
+    build: ./Docker/db
+    container_name: db_container
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
