@@ -191,7 +191,27 @@ def test_get_latest_opinion_articles_datetime_reached(fs):
     assert latest_datetime_reached_previous_attempts == '2002-02-25T01:53:00Z'
 
 
-def test_record_opinion_articles(fs, monkeypatch):
+def test_record_opinion_articles_content(fs):
+    """
+    XXX
+    """
+
+    # File already exists with contents
+    # Populate metadata file
+
+    """
+    id	type	sectionId	sectionName	webPublicationDate	webTitle	webUrl	apiUrl	isHosted	pillarId	pillarName
+politics/1990/nov/23/past.conservatives	article	commentisfree	Opinion	1990-11-23T16:47:00Z	The Thatcher Years | Hugo Young	https://www.theguardian.com/politics/1990/nov/23/past.conservatives	https://content.guardianapis.com/politics/1990/nov/23/past.conservatives	FALSE	pillar/opinion	Opinion
+world/2002/feb/25/race.uk	article	commentisfree	Opinion	2002-02-25T01:53:00Z	Gary Younge: Terms of abuse	https://www.theguardian.com/world/2002/feb/25/race.uk	https://content.guardianapis.com/world/2002/feb/25/race.uk	FALSE	pillar/opinion	Opinion
+    """
+
+    # Patch get request to return string
+
+    # Populates file
+
+    pass
+
+def test_record_opinion_articles_metadata(fs, monkeypatch):
     """
     Downloader iterates through pages and saves them to disk.
     """
