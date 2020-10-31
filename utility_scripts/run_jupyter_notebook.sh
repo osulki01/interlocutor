@@ -1,1 +1,1 @@
-docker exec interlocutor-dev pipenv run jupyter lab --ip 0.0.0.0 --port 8888 --no-browser
+docker exec dev /home/docker_user/.local/bin/jupyter notebook --ip 0.0.0.0 --port 8888 --no-browser
