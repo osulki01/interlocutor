@@ -1,9 +1,12 @@
 # Standard libraries
+import argparse
 import os
+import shutil
 import subprocess
 from typing import Dict, List
 
 # Third party libraries
+import bullet
 import dotenv
 import yaml
 
@@ -61,12 +64,14 @@ def _run_cli_command_and_display_exception(cli_command: List[str]) -> None:
         raise called_process_exception
 
 
-def start_database_service(service_name: str = "db") -> None:
+def start_database_service(clean_and_rebuild: bool, service_name: str = "db") -> None:
     """
     Start the database service, initialised the database and user if they don't already exist.
 
     Parameters
     ----------
+    clean_and_rebuild : bool
+        Whether to wipe the directory ./data/postgres and initialise the database from scratch.
     service_name : str (default "dev")
         Name of the database service in docker-compose.yaml.
 
@@ -76,18 +81,36 @@ def start_database_service(service_name: str = "db") -> None:
         If "docker-compose run" command cannot run.
     """
 
-    # In the Apple macOS operating system, .DS_Store is a file that stores custom attributes of its containing folder.
-    # The database service will ignore the creation/initialisation script if its data directory is not empty, so make
-    # sure this hidden file does not exist and unintentionally make the data directory non-empty
-    unwanted_ds_store_filepath = './data/postgres/.DS_Store'
-    if os.path.isfile(unwanted_ds_store_filepath):
-        os.remove(unwanted_ds_store_filepath)
+    docker_compose_config = _load_docker_compose_config()
+    container_name = docker_compose_config['services'][service_name]['container_name']
+    db_volume = docker_compose_config['services'][service_name]['volumes'][0].split(":")[0]
+
+    if clean_and_rebuild and os.path.isdir(db_volume):
+
+        prompt = bullet.Bullet(
+            prompt=f"\nYou have set the flag -c, or --clean_and_rebuild_db, which will delete the directory "
+                   f"{db_volume}. Confirm whether you want to delete existing data? ",
+            choices=["Yes, delete and start from fresh", "No, keep existing data"],
+            bullet="→",
+            margin=2,
+            bullet_color=bullet.colors.bright(bullet.colors.foreground["cyan"]),
+            background_color=bullet.colors.background["black"],
+            background_on_switch=bullet.colors.background["black"],
+            word_color=bullet.colors.foreground["white"],
+            word_on_switch=bullet.colors.foreground["red"]
+        )
+
+        decision = prompt.launch()
+
+        if decision == "Yes, delete and start from fresh":
+            print(f"Deleting and recreating empty version of directory {db_volume}")
+            shutil.rmtree(db_volume)
+
+        else:
+            print("Database service will still be created but the data volume will not be wiped.")
 
     # Set up the parameters required to run the database service
     dotenv.load_dotenv(dotenv_path='.env')
-
-    docker_compose_config = _load_docker_compose_config()
-    container_name = docker_compose_config['services'][service_name]['container_name']
 
     postgres_username = os.getenv('POSTGRES_USER')
     postgres_password = os.getenv("POSTGRES_PASSWORD")
@@ -135,11 +158,35 @@ def start_dev_container(service_name: str = "dev") -> None:
     print(f"\nDev container running. Use 'docker exec -it {container_name} bash' to attach to container.")
 
 
+def stop_and_remove_existing_containers() -> None:
+    """
+    Stop containers and removes containers, networks, volumes, and images created by docker-compose up.
+    """
+
+    print("Stop containers and removes containers, networks, volumes, and images created by docker-compose up.")
+
+    stop_and_remove_command = ["docker-compose", "down"]
+
+    _run_cli_command_and_display_exception(stop_and_remove_command)
+
+
 if __name__ == '__main__':
+
+    stop_and_remove_existing_containers()
 
     build_docker_services()
 
-    start_database_service()
+    parser = argparse.ArgumentParser(description='Start docker services.')
+
+    parser.add_argument(
+        "-c", "--clean_and_rebuild_db",
+        help="Whether to wipe the directory ./data/postgres and initialise the database from scratch.",
+        action="store_true",
+    )
+
+    args = parser.parse_args()
+
+    start_database_service(clean_and_rebuild=args.clean_and_rebuild_db)
 
     # conn = psycopg2.connect(dbname="articles", user="dev_user", password="postgres_password", host="db_container")
 
