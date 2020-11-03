@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  dev:
+    build: ./Docker/dev
+    container_name: dev
+    env_file:
+      - .env
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/usr/src/app
+
+  db:
+    build: ./Docker/db
+    container_name: db_container
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data

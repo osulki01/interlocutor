@@ -2,13 +2,13 @@
 import argparse
 import os
 import shutil
-import subprocess
-from typing import Dict, List
 
 # Third party libraries
 import bullet
 import dotenv
-import yaml
+
+# Internal imports
+from interlocutor.commons import commons
 
 
 def build_docker_services() -> None:
@@ -25,43 +25,7 @@ def build_docker_services() -> None:
 
     build_services_command = ["docker-compose", "build"]
 
-    _run_cli_command_and_display_exception(build_services_command)
-
-
-def _load_docker_compose_config() -> Dict:
-    """
-    Loads the contents of 'docker-compose.yaml' to a dictionary so its contents can be used programmatically.
-
-    Returns
-    -------
-    dict
-        Dictionary of the contents of 'docker-compose.yaml' file.
-    """
-
-    with open('docker-compose.yaml', 'rt') as yml_file:
-        return yaml.load(yml_file, Loader=yaml.FullLoader)
-
-
-def _run_cli_command_and_display_exception(cli_command: List[str]) -> None:
-    """
-    Execute a docker CLI command and display exception if one gets raised.
-
-    Parameters
-    ----------
-    cli_command : list[str]
-        List of individual components of the CLI command e.g. ["docker-compose", "up", "-d"]
-
-    Raises
-    ------
-    subprocess.CalledProcessError
-        If problem encountered running CLI command.
-    """
-
-    try:
-        subprocess.run(cli_command, stderr=subprocess.PIPE, text=True, check=True)
-    except subprocess.CalledProcessError as called_process_exception:
-        print(called_process_exception.stderr)
-        raise called_process_exception
+    commons.run_cli_command_and_display_exception(build_services_command)
 
 
 def start_database_service(clean_and_rebuild: bool, service_name: str = "db") -> None:
@@ -81,7 +45,7 @@ def start_database_service(clean_and_rebuild: bool, service_name: str = "db") ->
         If "docker-compose run" command cannot run.
     """
 
-    docker_compose_config = _load_docker_compose_config()
+    docker_compose_config = commons.load_docker_compose_config()
     container_name = docker_compose_config['services'][service_name]['container_name']
     db_volume = docker_compose_config['services'][service_name]['volumes'][0].split(":")[0]
 
@@ -126,7 +90,7 @@ def start_database_service(clean_and_rebuild: bool, service_name: str = "db") ->
         f"{service_name}",
     ]
 
-    _run_cli_command_and_display_exception(run_db_service_command)
+    commons.run_cli_command_and_display_exception(run_db_service_command)
 
     print(f"\nDatabase service running. Use 'docker exec -it {container_name} bash' to attach to container.")
 
@@ -146,14 +110,14 @@ def start_dev_container(service_name: str = "dev") -> None:
         If "docker-compose up" command cannot run.
     """
 
-    docker_compose_config = _load_docker_compose_config()
+    docker_compose_config = commons.load_docker_compose_config()
     container_name = docker_compose_config['services'][service_name]['container_name']
 
     print(f"Initialising development service {service_name}")
 
     run_dev_service_command = ["docker-compose", "up", "--detach", f"{container_name}"]
 
-    _run_cli_command_and_display_exception(run_dev_service_command)
+    commons.run_cli_command_and_display_exception(run_dev_service_command)
 
     print(f"\nDev container running. Use 'docker exec -it {container_name} bash' to attach to container.")
 
@@ -167,7 +131,7 @@ def stop_and_remove_existing_containers() -> None:
 
     stop_and_remove_command = ["docker-compose", "down"]
 
-    _run_cli_command_and_display_exception(stop_and_remove_command)
+    commons.run_cli_command_and_display_exception(stop_and_remove_command)
 
 
 if __name__ == '__main__':

@@ -2,8 +2,30 @@
 
 # Standard libraries
 import functools
+import subprocess
 
-from typing import Callable, Tuple, Union
+from typing import Callable, Tuple, Union, Dict, List
+
+import yaml
+
+
+def load_docker_compose_config(yaml_filename_path: str = 'docker-compose.yaml') -> Dict:
+    """
+    Loads the contents of 'docker-compose.yaml' to a dictionary so its contents can be used programmatically.
+
+    Parameters
+    ----------
+    yaml_filename_path : str
+        Filename or path of the docker-compose.yaml file.
+
+    Returns
+    -------
+    dict
+        Dictionary of the contents of 'docker-compose.yaml' file.
+    """
+
+    with open(yaml_filename_path, 'rt') as yml_file:
+        return yaml.load(yml_file, Loader=yaml.FullLoader)
 
 
 def retry(total_attempts: int, exceptions_to_check: Union[Exception, Tuple[Exception]]) -> Callable:
@@ -59,3 +81,25 @@ def retry(total_attempts: int, exceptions_to_check: Union[Exception, Tuple[Excep
         return func_with_retries
 
     return retry_decorator
+
+
+def run_cli_command_and_display_exception(cli_command: List[str]) -> None:
+    """
+    Execute a CLI command and display exception if one gets raised.
+
+    Parameters
+    ----------
+    cli_command : list[str]
+        List of individual components of the CLI command e.g. ["docker-compose", "up", "-d"]
+
+    Raises
+    ------
+    subprocess.CalledProcessError
+        If problem encountered running CLI command.
+    """
+
+    try:
+        subprocess.run(cli_command, stderr=subprocess.PIPE, text=True, check=True)
+    except subprocess.CalledProcessError as called_process_exception:
+        print(called_process_exception.stderr)
+        raise called_process_exception

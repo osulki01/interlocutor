@@ -1,11 +1,46 @@
 """Testing of common methods which can be re-used in different contexts of the service."""
 
+# Standard library imports
+import os
+
 # Third party libraries
 import pytest
 import requests
+import subprocess
 
 # Internal imports
 from interlocutor.commons import commons
+
+
+def test_load_docker_compose_config():
+    """Configuration is loaded correctly from docker-compose.yaml file."""
+
+    expected_config = {
+        'version': '3.8',
+        'services': {
+            'dev': {
+                'build': './Docker/dev',
+                'container_name': 'dev',
+                'env_file': ['.env'],
+                'ports': ['8888:8888'],
+                'volumes': ['./:/usr/src/app']
+            },
+            'db': {
+                'build': './Docker/db',
+                'container_name': 'db_container',
+                'ports': ['5432:5432'],
+                'volumes': ['./data/postgres:/var/lib/postgresql/data']
+            }
+        }
+    }
+
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+
+    actual_config = commons.load_docker_compose_config(
+        yaml_filename_path=f'{current_directory}/mock_docker-compose.yaml'
+    )
+
+    assert actual_config == expected_config
 
 
 class RetryTracker:
@@ -105,3 +140,22 @@ class TestRetry:
         assert retry_tracker.attempt_count == 1
         assert retry_tracker.successful_call is False
         assert retry_tracker.exceptions_raised == 1
+
+
+# 'capsys' is a pytest fixtures which allows you to access stdout/stderr output created during test execution.
+def test_run_cli_command_and_display_exception(capsys):
+    """Exception is raised and shown if encountered while executing CLI command."""
+
+    cli_command_which_will_fail = ['ls', '--invalid_flag']
+
+    with pytest.raises(subprocess.CalledProcessError):
+        commons.run_cli_command_and_display_exception(cli_command_which_will_fail)
+
+    # The error message can be multiple lines, so check that the error message contains the right text somewhere
+    # This test is an example of why you want to develop on the docker service 'dev' because the error message
+    # might be different on your OS and cause this test to fail
+    expected_output_message = "ls: unrecognized option '--invalid_flag'"
+    actual_output_message, _ = capsys.readouterr()
+
+    # Error message can span multiple lines or have trailing space so compare against the content only using strip
+    assert expected_output_message in actual_output_message
