@@ -1,0 +1,1 @@
+docker exec dev /home/docker_user/.local/bin/pytest interlocutor/
