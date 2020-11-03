@@ -152,6 +152,4 @@ if __name__ == '__main__':
 
     start_database_service(clean_and_rebuild=args.clean_and_rebuild_db)
 
-    # conn = psycopg2.connect(dbname="articles", user="dev_user", password="postgres_password", host="db_container")
-
     start_dev_container()
