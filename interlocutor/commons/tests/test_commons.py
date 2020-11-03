@@ -1,6 +1,6 @@
 """Testing of common methods which can be re-used in different contexts of the service."""
 
-# Standard library imports
+# Standard libraries
 import os
 
 # Third party libraries
