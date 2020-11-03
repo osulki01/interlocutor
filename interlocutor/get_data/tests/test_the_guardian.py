@@ -113,6 +113,7 @@ def test_get_article_content(monkeypatch):
     assert actual_article_content == expected_article_content
 
 
+# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
 def test_get_latest_opinion_articles_datetime_reached(fs):
     """
     Correct marker of progress made by previous API calls is retrieved, by showing the latest publication datetime
@@ -153,6 +154,7 @@ def test_get_latest_opinion_articles_datetime_reached(fs):
     assert latest_datetime_reached_previous_attempts == '2002-02-25T01:53:00Z'
 
 
+# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
 def test_record_opinion_articles_content(fs, monkeypatch):
     """
     The content of articles are pulled and saved to disk, and the script can pick up from where it last finished.
@@ -236,6 +238,7 @@ def test_record_opinion_articles_content(fs, monkeypatch):
     pd.testing.assert_frame_equal(actual_article_contents_second_time, expected_article_contents_second_time)
 
 
+# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
 def test_record_opinion_articles_metadata(fs, monkeypatch):
     """
     Downloader iterates through pages and saves them to disk.
@@ -350,6 +353,7 @@ def test_record_opinion_articles_metadata(fs, monkeypatch):
     pd.testing.assert_frame_equal(actual_metadata, expected_metadata)
 
 
+# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
 def test_save_article_data_to_disk(fs):
     """Saves dataframe to file and appends if it already exists."""
 
