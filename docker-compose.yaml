@@ -2,20 +2,68 @@ version: "3.8"
 
 services:
   dev:
-    build: ./Docker/dev
-    container_name: dev
+    build:
+      args:
+        - DEPLOYMENT_ENVIRONMENT=dev
+      context: ./Docker/recommender
+    container_name: recommender_dev
     env_file:
-      - .env
+      - ./environment_variables/.env.dev
     ports:
       - "8888:8888"
     volumes:
       - ./:/usr/src/app
 
-  db:
-    build: ./Docker/db
-    container_name: db_container
+  staging:
+    build:
+      args:
+        - DEPLOYMENT_ENVIRONMENT=staging
+      context: Docker/recommender
+    container_name: recommender_staging
+    env_file:
+      - ./environment_variables/.env.staging
+    volumes:
+      - ./:/usr/src/app
+
+  prod:
+    build:
+      args:
+        - DEPLOYMENT_ENVIRONMENT=prod
+      context: Docker/recommender
+    container_name: recommender_prod
+    env_file:
+      - ./environment_variables/.env.prod
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=prod
+    volumes:
+      - ./:/usr/src/app
+
+  db_staging:
+    build:
+      args:
+        - DEPLOYMENT_ENVIRONMENT=prod
+      context: Docker/db
+    container_name: db_staging
+    env_file:
+      - ./environment_variables/.env.staging
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=prod
+    ports:
+      - "5431:5432"
+    volumes:
+      - ./data/postgres/staging:/var/lib/postgresql/data
+
+  db_prod:
+    build:
+      args:
+        - DEPLOYMENT_ENVIRONMENT=prod
+      context: Docker/db
+    container_name: db_prod
+    env_file:
+      - ./environment_variables/.env.prod
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=prod
     ports:
       - "5432:5432"
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
-
+      - ./data/postgres/prod:/var/lib/postgresql/data

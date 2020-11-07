@@ -1,0 +1,6 @@
+-r base_requirements.in
+
+flake8
+jupyter
+pyfakefs
+pytest

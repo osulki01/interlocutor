@@ -10,7 +10,8 @@ USER $username
 # Ensure current host directory containing python requirements is available and create virtual environment
 WORKDIR /usr/src/app
 COPY . .
-RUN ["pip", "install", "-r", "python_requirements/requirements.txt"]
+ARG DEPLOYMENT_ENVIRONMENT
+RUN pip install --user --requirement python_requirements/${DEPLOYMENT_ENVIRONMENT}_requirements.txt
 
 # Keep container running in detached mode, so execute a meaningless command in the foreground
 CMD ["tail", "-f", "/dev/null"]

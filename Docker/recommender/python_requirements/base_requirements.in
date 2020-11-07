@@ -1,12 +1,7 @@
 beautifulsoup4
-jupyter
 numpy
 pandas
-pyfakefs
 psycopg2
-pytest
 python-dotenv
 requests
-tensorflow
 tqdm
-transformers
