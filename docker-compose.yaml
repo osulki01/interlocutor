@@ -8,7 +8,7 @@ services:
       context: ./Docker/recommender
     container_name: recommender_dev
     env_file:
-      - ./environment_variables/.env.dev
+      - Docker/environment_variables/.env.dev
     ports:
       - "8888:8888"
     volumes:
@@ -21,7 +21,7 @@ services:
       context: Docker/recommender
     container_name: recommender_staging
     env_file:
-      - ./environment_variables/.env.staging
+      - Docker/environment_variables/.env.staging
     volumes:
       - ./:/usr/src/app
 
@@ -32,7 +32,7 @@ services:
       context: Docker/recommender
     container_name: recommender_prod
     env_file:
-      - ./environment_variables/.env.prod
+      - Docker/environment_variables/.env.prod
     environment:
       - DEPLOYMENT_ENVIRONMENT=prod
     volumes:
@@ -42,12 +42,13 @@ services:
     build:
       args:
         - DEPLOYMENT_ENVIRONMENT=prod
-      context: Docker/db
+      context: Docker
+      dockerfile: db/Dockerfile
     container_name: db_staging
     env_file:
-      - ./environment_variables/.env.staging
+      - Docker/environment_variables/.env.staging
     environment:
-      - DEPLOYMENT_ENVIRONMENT=prod
+      - DEPLOYMENT_ENVIRONMENT=stg
     ports:
       - "5431:5432"
     volumes:
@@ -57,10 +58,11 @@ services:
     build:
       args:
         - DEPLOYMENT_ENVIRONMENT=prod
-      context: Docker/db
+      context: Docker
+      dockerfile: db/Dockerfile
     container_name: db_prod
     env_file:
-      - ./environment_variables/.env.prod
+      - Docker/environment_variables/.env.prod
     environment:
       - DEPLOYMENT_ENVIRONMENT=prod
     ports:
