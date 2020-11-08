@@ -48,7 +48,7 @@ services:
     env_file:
       - Docker/environment_variables/.env.staging
     environment:
-      - DEPLOYMENT_ENVIRONMENT=stg
+      - DEPLOYMENT_ENVIRONMENT=staging
     ports:
       - "5431:5432"
     volumes:
