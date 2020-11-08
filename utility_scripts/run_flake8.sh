@@ -1,0 +1,1 @@
+docker exec recommender_dev /home/docker_user/.local/bin/flake8 interlocutor/ --max-line-length 120

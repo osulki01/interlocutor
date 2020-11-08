@@ -2,13 +2,11 @@
 
 # Standard libraries
 import os
-import pathlib
 import time
 from typing import Any, Dict, Union
 
 # Third party libraries
 from bs4 import BeautifulSoup
-import dotenv
 import numpy as np
 import pandas as pd
 import requests
@@ -37,12 +35,7 @@ class ArticleDownloader:
             File name/path which contains metadata about the articles which have already been stored.
         """
 
-        # Load API key from the root directory of this project
-        parent_directory = os.path.dirname(os.path.abspath(__file__))
-        project_root = pathlib.Path(parent_directory).parent.parent
-        dotenv.load_dotenv(dotenv_path=f"{str(project_root)}/.env")
         self._api_key = os.getenv('GUARDIAN_API_KEY')
-
         self._article_contents_file = article_contents_file
         self._metadata_file = metadata_file
         self._opinion_section_url = 'https://content.guardianapis.com/commentisfree/commentisfree'

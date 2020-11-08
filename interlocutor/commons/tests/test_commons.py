@@ -104,7 +104,13 @@ class TestRetry:
             (4, True, 3, 2)
         ]
     )
-    def test_retry_correct_number_of_attempts(self, attempts_requested, successful_call_achieved, total_attempts_made, exceptions_raised):
+    def test_retry_correct_number_of_attempts(
+            self,
+            attempts_requested,
+            successful_call_achieved,
+            total_attempts_made,
+            exceptions_raised
+    ):
         """Function decorated with the retry method retries an appropriate number of times."""
 
         retry_tracker = RetryTracker()

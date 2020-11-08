@@ -4,3 +4,5 @@ flake8
 jupyter
 pyfakefs
 pytest
+pytest-cov
+pyyaml
