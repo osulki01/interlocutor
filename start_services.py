@@ -37,7 +37,7 @@ def start_database_service(clean_and_rebuild: bool, service_name: str = "db") ->
     clean_and_rebuild : bool
         Whether to wipe the directory ./data/postgres and initialise the database from scratch.
     service_name : str (default "dev")
-        Name of the database service in docker-compose.yaml.
+        Name of the database service in docker-compose.yml.
 
     Raises
     ------
@@ -102,7 +102,7 @@ def start_dev_container(service_name: str = "dev") -> None:
     Parameters
     ----------
     service_name : str (default "dev")
-        Name of the development environment service in docker-compose.yaml.
+        Name of the development environment service in docker-compose.yml.
 
     Raises
     ------

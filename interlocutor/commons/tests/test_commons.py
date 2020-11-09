@@ -13,7 +13,7 @@ from interlocutor.commons import commons
 
 
 def test_load_docker_compose_config():
-    """Configuration is loaded correctly from docker-compose.yaml file."""
+    """Configuration is loaded correctly from docker-compose.yml file."""
 
     expected_config = {
         'version': '3.8',

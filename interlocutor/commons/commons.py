@@ -9,19 +9,19 @@ from typing import Callable, Tuple, Union, Dict, List
 import yaml
 
 
-def load_docker_compose_config(yaml_filename_path: str = 'docker-compose.yaml') -> Dict:
+def load_docker_compose_config(yaml_filename_path: str = 'docker-compose.yml') -> Dict:
     """
-    Loads the contents of 'docker-compose.yaml' to a dictionary so its contents can be used programmatically.
+    Loads the contents of 'docker-compose.yml' to a dictionary so its contents can be used programmatically.
 
     Parameters
     ----------
     yaml_filename_path : str
-        Filename or path of the docker-compose.yaml file.
+        Filename or path of the docker-compose.yml file.
 
     Returns
     -------
     dict
-        Dictionary of the contents of 'docker-compose.yaml' file.
+        Dictionary of the contents of 'docker-compose.yml' file.
     """
 
     with open(yaml_filename_path, 'rt') as yml_file:
