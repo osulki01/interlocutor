@@ -33,26 +33,26 @@ services:
     container_name: recommender_prod
     env_file:
       - Docker/environment_variables/.env.prod
-    environment:
-      - DEPLOYMENT_ENVIRONMENT=prod
+#    environment:
+#      - DEPLOYMENT_ENVIRONMENT=prod
     volumes:
       - ./:/usr/src/app
 
   db_staging:
     build:
       args:
-        - DEPLOYMENT_ENVIRONMENT=prod
+        - DEPLOYMENT_ENVIRONMENT=staging
       context: Docker
       dockerfile: db/Dockerfile
     container_name: db_staging
     env_file:
       - Docker/environment_variables/.env.staging
-    environment:
-      - DEPLOYMENT_ENVIRONMENT=staging
+#    environment:
+#      - DEPLOYMENT_ENVIRONMENT=staging
     ports:
       - "5431:5432"
     volumes:
-      - ./data/postgres/staging:/var/lib/postgresql/data
+      - ./Docker/db/staging_data:/staging_data
 
   db_prod:
     build:
@@ -63,8 +63,8 @@ services:
     container_name: db_prod
     env_file:
       - Docker/environment_variables/.env.prod
-    environment:
-      - DEPLOYMENT_ENVIRONMENT=prod
+#    environment:
+#      - DEPLOYMENT_ENVIRONMENT=prod
     ports:
       - "5432:5432"
     volumes:

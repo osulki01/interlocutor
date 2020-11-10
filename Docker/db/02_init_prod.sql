@@ -1,0 +1,3 @@
+-- No actions taken with this script as no staging data is needed for initialisation.
+-- It exists only so that the Dockerfile does not throw an error while trying to execute the command below:
+-- COPY  db/init_${DEPLOYMENT_ENVIRONMENT}*.sql /docker-entrypoint-initdb.d/
