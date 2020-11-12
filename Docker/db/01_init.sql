@@ -17,7 +17,7 @@ GRANT ALL PRIVILEGES ON SCHEMA the_guardian TO $POSTGRES_USER;
 -- Metadata
 CREATE TABLE the_guardian.article_metadata
 (
-    id                        BIGINT PRIMARY KEY,
+    id                        CHAR(32) PRIMARY KEY,
     guardian_id               VARCHAR,
     content_type              VARCHAR,
     section_id                VARCHAR,
@@ -31,7 +31,7 @@ CREATE TABLE the_guardian.article_metadata
 );
 
 COMMENT ON TABLE the_guardian.article_metadata IS 'Metadata, including how to access content.';
-COMMENT ON COLUMN the_guardian.article_metadata.id IS 'Auto-generated unique identifier of each article';
+COMMENT ON COLUMN the_guardian.article_metadata.id IS 'Hash of guardian_id to create unique identifier of fixed length';
 COMMENT ON COLUMN the_guardian.article_metadata.guardian_id IS 'Path to the article content';
 COMMENT ON COLUMN the_guardian.article_metadata.content_type IS 'Type of article e.g. interactive, video, or article';
 COMMENT ON COLUMN the_guardian.article_metadata.section_id IS 'ID of the section in The Guardian';

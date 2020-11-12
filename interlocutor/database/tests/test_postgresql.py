@@ -37,24 +37,13 @@ def test_get_dataframe_from_table_name():
     db_connection = postgresql.DatabaseConnection()
 
     expected = pd.DataFrame(
-        columns=['id', 'guardian_id', 'content_type', 'section_id', 'section_name', 'web_publication_timestamp',
-                 'web_title', 'web_url', 'api_url', 'pillar_id', 'pillar_name'],
-        data=[[1, 'politics/1990/nov/23/past.conservatives', 'article', 'commentisfree', 'Opinion',
-               '1990-11-23T16:47:00Z', 'The Thatcher Years | Hugo Young',
-               'https://www.theguardian.com/politics/1990/nov/23/past.conservatives',
-               'https://content.guardianapis.com/politics/1990/nov/23/past.conservatives', 'pillar/opinion', 'Opinion'],
-              [2, 'world/2002/feb/25/race.uk', 'article', 'commentisfree', 'Opinion',
-               '2002-02-25T01:53:00Z', 'Gary Younge: Terms of abuse',
-               'https://www.theguardian.com/world/2002/feb/25/race.uk',
-               'https://content.guardianapis.com/world/2002/feb/25/race.uk', 'pillar/opinion', 'Opinion']]
+        columns=['example_integer', 'example_string', 'example_timestamp'],
+        data=[[1, 'First value', '2020-01-21T01:53:00Z'], [2, 'Second value', '2020-07-16T03:31:00Z']]
     )
 
-    expected['web_publication_timestamp'] = pd.to_datetime(
-        expected['web_publication_timestamp'],
-        format='%Y-%m-%dT%H:%M:%SZ'
-    )
+    expected['example_timestamp'] = pd.to_datetime(expected['example_timestamp'], format='%Y-%m-%dT%H:%M:%SZ')
 
-    actual = db_connection.get_dataframe(schema="the_guardian", table_name="article_metadata")
+    actual = db_connection.get_dataframe(schema="testing_schema", table_name="testing_table")
 
     pd.testing.assert_frame_equal(left=actual, right=expected)
 
@@ -64,13 +53,10 @@ def test_get_dataframe_from_query():
 
     db_connection = postgresql.DatabaseConnection()
 
-    expected = pd.DataFrame(
-        columns=['id', 'guardian_id'],
-        data=[[1, 'politics/1990/nov/23/past.conservatives']]
-    )
+    expected = pd.DataFrame(columns=['example_integer', 'example_string'], data=[[1, 'First value']])
 
     actual = db_connection.get_dataframe(
-        query="SELECT id, guardian_id FROM the_guardian.article_metadata WHERE id = 1;"
+        query="SELECT example_integer, example_string FROM testing_schema.testing_table WHERE example_integer = 1;"
     )
 
     pd.testing.assert_frame_equal(left=actual, right=expected)
@@ -81,13 +67,11 @@ def test_get_dataframe_from_query_with_parameters():
 
     db_connection = postgresql.DatabaseConnection()
 
-    expected = pd.DataFrame(
-        columns=['id', 'guardian_id'],
-        data=[[1, 'politics/1990/nov/23/past.conservatives']]
-    )
+    expected = pd.DataFrame(columns=['example_integer', 'example_string'], data=[[1, 'First value']])
 
     actual = db_connection.get_dataframe(
-        query="SELECT id, guardian_id FROM the_guardian.article_metadata WHERE id = %(id)s;",
+        query=("SELECT example_integer, example_string "
+               "FROM testing_schema.testing_table WHERE example_integer = %(id)s;"),
         query_params={'id': 1}
     )
 
