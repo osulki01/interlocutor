@@ -37,7 +37,7 @@ mistune==0.8.4            # via nbconvert
 nbclient==0.5.1           # via nbconvert
 nbconvert==6.0.7          # via jupyter, notebook
 nbformat==5.0.8           # via ipywidgets, nbclient, nbconvert, notebook
-nest-asyncio==1.4.2       # via nbclient
+nest-asyncio==1.4.3       # via nbclient
 notebook==6.1.5           # via jupyter, widgetsnbextension
 packaging==20.4           # via bleach, pytest
 pandocfilters==1.4.3      # via nbconvert
@@ -59,7 +59,7 @@ pyrsistent==0.17.3        # via jsonschema
 pytest-cov==2.10.1        # via -r Docker/recommender/python_requirements/dev_requirements.in
 pytest==6.1.2             # via -r Docker/recommender/python_requirements/dev_requirements.in, pytest-cov
 pyyaml==5.3.1             # via -r Docker/recommender/python_requirements/dev_requirements.in
-pyzmq==19.0.2             # via jupyter-client, notebook, qtconsole
+pyzmq==20.0.0             # via jupyter-client, notebook, qtconsole
 qtconsole==4.7.7          # via jupyter
 qtpy==1.9.0               # via qtconsole
 send2trash==1.5.0         # via notebook

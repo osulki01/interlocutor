@@ -6,10 +6,10 @@ import pathlib
 from typing import Dict
 
 # Third party libraries
-import dotenv
 import pandas as pd
 import psycopg2
 from psycopg2 import sql as psy_sql
+import sqlalchemy
 
 # Internal imports
 from interlocutor.commons import commons
@@ -18,29 +18,29 @@ from interlocutor.commons import commons
 class DatabaseConnection:
     """Helper class to connect and execute code against postgres database."""
 
-    def __init__(self, database: str = 'interlocutor'):
+    def __init__(self, environment: str, database: str = 'interlocutor'):
         """
         Parameters
         ----------
+        environment : str
+            Deployment environment, either 'staging' or 'prod'.
         database : str (default 'interlocutor')
             Name of the database to connect to.
         """
 
         self._database = database
-
-        # Load database credentials from .env file
-        # parent_directory = os.path.dirname(os.path.abspath(__file__))
-        # project_root = pathlib.Path(parent_directory).parent.parent
-        # dotenv.load_dotenv(dotenv_path=f"{str(project_root)}/.env")
         self._username = os.getenv('POSTGRES_USER')
         self._password = os.getenv('POSTGRES_PASSWORD')
 
-        # Retrieve the name of the container running the database
-        # docker_compose_config = commons.load_docker_compose_config(f"{project_root}/docker-compose.yaml")
-        # self._db_container_name = docker_compose_config['services']['db_staging']['container_name']
-        self._db_container_name = 'db_staging'
+        # Retrieve the name of the database container within the deployment environment
+        parent_directory = os.path.dirname(os.path.abspath(__file__))
+        project_root = pathlib.Path(parent_directory).parent.parent
+        docker_compose_config = commons.load_docker_compose_config(f"{project_root}/docker-compose.yml")
 
-    def _create_connection(self):
+        self._db_container_name = docker_compose_config['services'][f'db_{environment}']['container_name']
+        self._postgres_port = 5432
+
+    def _create_connection(self) -> None:
         """Establish connection to postgres database running on container."""
 
         self._conn = psycopg2.connect(
@@ -50,10 +50,43 @@ class DatabaseConnection:
             host=self._db_container_name
         )
 
-    def _close_connection(self):
+        engine_connection_string = f"postgresql+psycopg2://{self._username}:{self._password}@" \
+                                   f"{self._db_container_name}:{self._postgres_port}/{self._database}"
+
+        self._engine = sqlalchemy.create_engine(engine_connection_string)
+
+    def _close_connection(self) -> None:
         """Close connection to postgres database."""
 
         self._conn.close()
+        self._engine.dispose()
+
+    def execute_database_operation(self, sql_command: str, params: Dict = None) -> None:
+        """
+        Executes operation on database.
+
+        Parameters
+        ----------
+        sql_command : str
+            Database operation to be executed.
+        params : dict (default None)
+            Parameters to pass to the SQL execution. Used named placeholders in the query and then provide the argument
+            mapping in a dictionary e.g.
+
+            query="DELETE FROM schema.table WHERE id = %(specific_id)s;",
+            query_params={'specific_id': 9}
+
+            See more info here: https://www.psycopg.org/docs/usage.html#query-parameters
+        """
+
+        self._create_connection()
+
+        with self._conn.cursor() as curs:
+            print(curs.mogrify(sql_command, params))
+            curs.execute(query=sql_command, vars=params)
+            self._conn.commit()
+
+        self._close_connection()
 
     def get_dataframe(
             self,
@@ -117,3 +150,31 @@ class DatabaseConnection:
         self._close_connection()
 
         return df
+
+    def upload_dataframe(
+            self,
+            dataframe: pd.DataFrame,
+            table_name: str,
+            schema: str,
+            **pandas_to_sql_kwargs,
+    ) -> None:
+        """
+        Write contents of a pandas DataFrame to a permanent table on postgres database.
+
+        Parameters
+        ----------
+        dataframe : pandas DataFrame
+            Data to be uploaded.
+        table_name : str
+            Name of target table which will store the dataframe.
+        schema : str (default None)
+            Name of schema in which the target table sits.
+        pandas_to_sql_kwargs : additional named arguments
+            Arguments which can be passed to the pandas.DataFrame.to_sql command.
+        """
+
+        self._create_connection()
+
+        dataframe.to_sql(con=self._engine, name=table_name, schema=schema, **pandas_to_sql_kwargs)
+
+        self._close_connection()
