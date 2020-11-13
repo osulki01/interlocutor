@@ -8,17 +8,17 @@
 -r base_requirements.txt
 attrs==20.3.0             # via pytest
 coverage==5.3             # via pytest-cov
-flake8==3.8.4             # via -r Docker/recommender/python_requirements/staging_requirements.in
+flake8==3.8.4             # via -r Docker/recommender/python_requirements/stg_requirements.in
 iniconfig==1.1.1          # via pytest
 mccabe==0.6.1             # via flake8
 packaging==20.4           # via pytest
 pluggy==0.13.1            # via pytest
 py==1.9.0                 # via pytest
 pycodestyle==2.6.0        # via flake8
-pyfakefs==4.2.1           # via -r Docker/recommender/python_requirements/staging_requirements.in
+pyfakefs==4.2.1           # via -r Docker/recommender/python_requirements/stg_requirements.in
 pyflakes==2.2.0           # via flake8
 pyparsing==2.4.7          # via packaging
-pytest-cov==2.10.1        # via -r Docker/recommender/python_requirements/staging_requirements.in
-pytest==6.1.2             # via -r Docker/recommender/python_requirements/staging_requirements.in, pytest-cov
-pyyaml==5.3.1             # via -r Docker/recommender/python_requirements/staging_requirements.in
+pytest-cov==2.10.1        # via -r Docker/recommender/python_requirements/stg_requirements.in
+pytest==6.1.2             # via -r Docker/recommender/python_requirements/stg_requirements.in, pytest-cov
+pyyaml==5.3.1             # via -r Docker/recommender/python_requirements/stg_requirements.in
 toml==0.10.2              # via pytest

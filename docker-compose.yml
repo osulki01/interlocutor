@@ -14,58 +14,52 @@ services:
     volumes:
       - ./:/usr/src/app
 
-  staging:
+  stg:
     build:
       args:
-        - DEPLOYMENT_ENVIRONMENT=staging
+        - DEPLOYMENT_ENVIRONMENT=stg
       context: Docker/recommender
-    container_name: recommender_staging
+    container_name: recommender_stg
     env_file:
-      - Docker/environment_variables/.env.staging
+      - Docker/environment_variables/.env.stg
     volumes:
       - ./:/usr/src/app
 
-  prod:
+  prd:
     build:
       args:
-        - DEPLOYMENT_ENVIRONMENT=prod
+        - DEPLOYMENT_ENVIRONMENT=prd
       context: Docker/recommender
-    container_name: recommender_prod
+    container_name: recommender_prd
     env_file:
-      - Docker/environment_variables/.env.prod
-#    environment:
-#      - DEPLOYMENT_ENVIRONMENT=prod
+      - Docker/environment_variables/.env.prd
     volumes:
       - ./:/usr/src/app
 
-  db_staging:
+  db_stg:
     build:
       args:
-        - DEPLOYMENT_ENVIRONMENT=staging
+        - DEPLOYMENT_ENVIRONMENT=stg
       context: Docker
       dockerfile: db/Dockerfile
-    container_name: db_staging
+    container_name: db_stg
     env_file:
-      - Docker/environment_variables/.env.staging
-#    environment:
-#      - DEPLOYMENT_ENVIRONMENT=staging
+      - Docker/environment_variables/.env.stg
     ports:
       - "5431:5432"
     volumes:
       - ./Docker/db/staging_data:/staging_data
 
-  db_prod:
+  db_prd:
     build:
       args:
-        - DEPLOYMENT_ENVIRONMENT=prod
+        - DEPLOYMENT_ENVIRONMENT=prd
       context: Docker
       dockerfile: db/Dockerfile
-    container_name: db_prod
+    container_name: db_prd
     env_file:
-      - Docker/environment_variables/.env.prod
-#    environment:
-#      - DEPLOYMENT_ENVIRONMENT=prod
+      - Docker/environment_variables/.env.prd
     ports:
       - "5432:5432"
     volumes:
-      - ./data/postgres/prod:/var/lib/postgresql/data
+      - ./data/postgres/prd:/var/lib/postgresql/data

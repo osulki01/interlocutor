@@ -12,7 +12,7 @@ from interlocutor.database import postgresql
 def test_execute_database_operation():
     """SQL command successfully executed on database."""
 
-    db_connection = postgresql.DatabaseConnection(environment='staging')
+    db_connection = postgresql.DatabaseConnection(environment='stg')
 
     # Mock data which will be inserted into permanent testing table as a new row
     example_integer = 3
@@ -60,7 +60,7 @@ def test_execute_database_operation():
 def test_get_dataframe_demands_correct_arguments():
     """Exceptions or warnings should be raised if an incorrect combination of arguments is provided."""
 
-    db_connection = postgresql.DatabaseConnection(environment='staging')
+    db_connection = postgresql.DatabaseConnection(environment='stg')
 
     # Scenario 1: Both query and table name are provided. Only one should be provided to either execute a query or
     # retrieve a full table.
@@ -85,7 +85,7 @@ def test_get_dataframe_demands_correct_arguments():
 def test_get_dataframe_from_table_name():
     """All data from a table can be retrieved simply by providing a schema and table name."""
 
-    db_connection = postgresql.DatabaseConnection(environment='staging')
+    db_connection = postgresql.DatabaseConnection(environment='stg')
 
     expected = pd.DataFrame(
         columns=['example_integer', 'example_string', 'example_timestamp'],
@@ -102,7 +102,7 @@ def test_get_dataframe_from_table_name():
 def test_get_dataframe_from_query():
     """All data from a table can be retrieved by providing a query."""
 
-    db_connection = postgresql.DatabaseConnection(environment='staging')
+    db_connection = postgresql.DatabaseConnection(environment='stg')
 
     expected = pd.DataFrame(columns=['example_integer', 'example_string'], data=[[1, 'First value']])
 
@@ -116,7 +116,7 @@ def test_get_dataframe_from_query():
 def test_get_dataframe_from_query_with_parameters():
     """All data from a table can be retrieved by providing a parameterised query."""
 
-    db_connection = postgresql.DatabaseConnection(environment='staging')
+    db_connection = postgresql.DatabaseConnection(environment='stg')
 
     expected = pd.DataFrame(columns=['example_integer', 'example_string'], data=[[1, 'First value']])
 
@@ -132,7 +132,7 @@ def test_get_dataframe_from_query_with_parameters():
 def test_upload_dataframe():
     """Dataframe is successfully written to a permanent postgres table."""
 
-    db_connection = postgresql.DatabaseConnection(environment='staging')
+    db_connection = postgresql.DatabaseConnection(environment='stg')
 
     # Create dataframe and upload to postgres
     expected_df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})

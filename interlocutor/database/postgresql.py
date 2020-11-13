@@ -23,7 +23,7 @@ class DatabaseConnection:
         Parameters
         ----------
         environment : str
-            Deployment environment, either 'staging' or 'prod'.
+            Deployment environment, either 'stg' or 'prd'.
         database : str (default 'interlocutor')
             Name of the database to connect to.
         """
