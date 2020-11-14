@@ -57,6 +57,21 @@ def test_execute_database_operation():
     pd.testing.assert_frame_equal(left=actual_df, right=expected_df)
 
 
+def test_get_column_names_existing_table():
+    """The column names of an existing table are successfully retrieved."""
+
+    db_connection = postgresql.DatabaseConnection(environment='stg')
+
+    expected_column_names = ['example_integer', 'example_string', 'example_timestamp']
+
+    actual_column_names = db_connection._get_column_names_existing_table(
+        table_name='testing_table',
+        schema='testing_schema'
+    )
+
+    assert all([actual == expected for actual, expected in zip(actual_column_names, expected_column_names)])
+
+
 def test_get_dataframe_demands_correct_arguments():
     """Exceptions or warnings should be raised if an incorrect combination of arguments is provided."""
 
@@ -153,6 +168,55 @@ def test_upload_dataframe():
 
         # Tidy up
         cursor.execute('DROP TABLE testing_schema.uploaded_dataframe;')
+        db_connection._conn.commit()
+
+    pd.testing.assert_frame_equal(left=actual_df, right=expected_df)
+
+
+def test_upload_new_data_only_to_existing_table():
+    """Only new rows are inserted into an existing table."""
+
+    db_connection = postgresql.DatabaseConnection(environment='stg')
+
+    # Create dataframe with one row where the example_integer index already exists in the target table and should not be
+    # inserted (1), and a new index (99) which should go in.
+    # Also reorganise the rows to a different order to make sure it is handled
+    rows_to_upload = pd.DataFrame(
+        data={
+            'example_string': ["Won't be inserted", "Will be inserted"],
+            'example_integer': [1, 99],
+            'example_timestamp': [datetime.datetime(2020, 11, 10, 15, 20, 37, 0),
+                                  datetime.datetime(2035, 6, 10, 19, 3, 4, 0)]
+        }
+    )
+
+    db_connection.upload_new_data_only_to_existing_table(
+        dataframe=rows_to_upload,
+        table_name='testing_table',
+        schema='testing_schema',
+        id_column='example_integer'
+    )
+
+    # Retrieve the table and see if it was inserted into correctly
+    expected_df = pd.DataFrame(
+        data={
+            'example_integer': [1, 2, 99],
+            'example_string': ["First value", "Second value", "Will be inserted"],
+            'example_timestamp': [datetime.datetime(2020, 1, 21, 1, 53, 0, 0),
+                                  datetime.datetime(2020, 7, 16, 3, 31, 0, 0),
+                                  datetime.datetime(2035, 6, 10, 19, 3, 4, 0)]
+        }
+    )
+
+    db_connection._create_connection()
+    with db_connection._conn.cursor() as cursor:
+        cursor.execute('SELECT * FROM testing_schema.testing_table;')
+
+        table_tuples = cursor.fetchall()
+        actual_df = pd.DataFrame(table_tuples, columns=['example_integer', 'example_string', 'example_timestamp'])
+
+        # Tidy up
+        cursor.execute('DELETE FROM testing_schema.testing_table WHERE example_integer = 99;')
         db_connection._conn.commit()
 
     pd.testing.assert_frame_equal(left=actual_df, right=expected_df)

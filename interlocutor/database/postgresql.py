@@ -3,7 +3,7 @@
 # Standard libraries
 import os
 import pathlib
-from typing import Dict
+from typing import Dict, List, Union
 
 # Third party libraries
 import pandas as pd
@@ -61,20 +61,20 @@ class DatabaseConnection:
         self._conn.close()
         self._engine.dispose()
 
-    def execute_database_operation(self, sql_command: str, params: Dict = None) -> None:
+    def execute_database_operation(self, sql_command: Union[str, psy_sql.Composable], params: Dict = None) -> None:
         """
         Executes operation on database.
 
         Parameters
         ----------
-        sql_command : str
+        sql_command : str or psycopg2.sql.Composable
             Database operation to be executed.
         params : dict (default None)
             Parameters to pass to the SQL execution. Used named placeholders in the query and then provide the argument
             mapping in a dictionary e.g.
 
-            query="DELETE FROM schema.table WHERE id = %(specific_id)s;",
-            query_params={'specific_id': 9}
+            sql_command="DELETE FROM schema.table WHERE id = %(specific_id)s;",
+            params={'specific_id': 9}
 
             See more info here: https://www.psycopg.org/docs/usage.html#query-parameters
         """
@@ -82,17 +82,49 @@ class DatabaseConnection:
         self._create_connection()
 
         with self._conn.cursor() as curs:
-            print(curs.mogrify(sql_command, params))
             curs.execute(query=sql_command, vars=params)
             self._conn.commit()
 
         self._close_connection()
 
+    def _get_column_names_existing_table(
+            self,
+            table_name: str,
+            schema: str
+    ) -> List[str]:
+        """
+        Get the list of column names from an existing table.
+
+        Parameters
+        ----------
+        table_name : str
+            Name of target table which will store the dataframe.
+        schema : str (default None)
+            Name of schema in which the target table sits.
+
+        Returns
+        -------
+        list
+            All of the column names in the same order that they exist in postgres.
+        """
+
+        sql_query = psy_sql.SQL("SELECT * FROM {} LIMIT 0;").format(psy_sql.Identifier(schema, table_name))
+
+        try:
+            existing_df = self.get_dataframe(query=sql_query)
+        except pd.io.sql.DatabaseError as db_error:
+            print(
+                f"Unable to get columns from table {schema}.{table_name}. Are you sure it exists and you have access?"
+            )
+            raise db_error
+
+        return existing_df.columns.values
+
     def get_dataframe(
             self,
             table_name: str = None,
             schema: str = None,
-            query: str = None,
+            query: Union[str, psy_sql.Composable] = None,
             query_params: Dict = None
     ) -> pd.DataFrame:
         """
@@ -106,7 +138,7 @@ class DatabaseConnection:
         schema : str (default None)
             Name of schema in which the table sits. Only use if you want to pull all data from a table rather than
             execute a specific query
-        query : str (default None)
+        query : str or psycopg2.sql.Composable (default None)
             SQL query to be executed.
         query_params : dict (default None)
             Parameters to pass to the SQL execution. Used named placeholders in the query and then provide the argument
@@ -178,3 +210,76 @@ class DatabaseConnection:
         dataframe.to_sql(con=self._engine, name=table_name, schema=schema, **pandas_to_sql_kwargs)
 
         self._close_connection()
+
+    def upload_new_data_only_to_existing_table(
+            self,
+            dataframe: pd.DataFrame,
+            table_name: str,
+            schema: str,
+            id_column: str
+    ) -> None:
+        """
+        Write contents of a pandas DataFrame to an existing table on postgres database, but only insert new rows.
+
+        This is not an insert statement, not an upsert, so rows which share the same ID as an existing entry are not
+        ignored rather than updating existing entries.
+
+        Parameters
+        ----------
+        dataframe : pandas DataFrame
+            Data to be uploaded.
+        table_name : str
+            Name of target table which will store the dataframe.
+        schema : str (default None)
+            Name of schema in which the target table sits.
+        id_column : str
+            Primary key column in target table which identifies whether a row already exists.
+        """
+
+        # Get column names from target table and make sure dataframe is in the same order
+        postgres_table_columns = self._get_column_names_existing_table(table_name=table_name, schema=schema)
+        set_postgres_table_columns = set(postgres_table_columns)
+        set_dataframe_columns = set(dataframe.columns)
+
+        if set_dataframe_columns != set_postgres_table_columns:
+            print("The columns that do not exist in both the local dataframe and target table are...")
+            print(set_dataframe_columns.symmetric_difference(set_postgres_table_columns))
+            raise ValueError("The column names in the dataframe are not identical to that of the target table.")
+
+        dataframe_reorganised_columns = dataframe.reindex(columns=postgres_table_columns)
+
+        print('*' * 50)
+        print(dataframe_reorganised_columns.columns)
+        print()
+
+        # Create staging table which will store data intermediately
+        staging_table_name = f"{table_name}_staging"
+        self.upload_dataframe(
+            dataframe=dataframe_reorganised_columns,
+            table_name=staging_table_name,
+            schema=schema,
+            index=False
+        )
+
+        # Transfer new rows from staging to target table
+        insert_query = psy_sql.SQL("INSERT INTO {target_schema_and_table} "
+                                   "SELECT * FROM {staging_table_schema_and_table} "
+                                   "WHERE {id_column} NOT IN "
+                                   "(SELECT DISTINCT {id_column} FROM {target_schema_and_table})").format(
+            target_schema_and_table=psy_sql.Identifier(schema, table_name),
+            staging_table_schema_and_table=psy_sql.Identifier(schema, staging_table_name),
+            id_column=psy_sql.Identifier(id_column)
+        )
+
+        self._create_connection()
+
+        with self._conn.cursor() as curs:
+            curs.execute(query=insert_query)
+            self._conn.commit()
+
+        self._close_connection()
+
+        # Drop intermediate staging table
+        self.execute_database_operation(
+            sql_command=psy_sql.SQL("DROP TABLE {staging_table_schema_and_table}").format(
+                staging_table_schema_and_table=psy_sql.Identifier(schema, staging_table_name)))
