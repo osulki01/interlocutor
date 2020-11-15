@@ -30,8 +30,7 @@ def load_docker_compose_config(yaml_filename_path: str = 'docker-compose.yml') -
 
 def retry(total_attempts: int, exceptions_to_check: Union[Exception, Tuple[Exception]]) -> Callable:
     """
-    Execute the decorated function and retry a specified number of times if it encounters an exception (assumes that
-    the function which makes the request explicitly raises an exception).
+    Execute the decorated function and retry a specified number of times if it encounters an exception.
 
     Parameters
     ----------
