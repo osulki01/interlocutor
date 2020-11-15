@@ -2,10 +2,12 @@
 
 # Standard libraries
 import functools
+import os
 import subprocess
-from typing import Callable, Tuple, Union, Dict, List
+from typing import Callable, Dict, List, Tuple, Union
 
 # Third party libraries
+import pandas as pd
 import yaml
 
 
@@ -102,3 +104,25 @@ def run_cli_command_and_display_exception(cli_command: List[str]) -> None:
     except subprocess.CalledProcessError as called_process_exception:
         print(called_process_exception.stderr)
         raise called_process_exception
+
+
+def write_or_append_dataframe_to_csv(data: pd.DataFrame, filepath: str) -> None:
+    """
+    Save data to a csv file (and append if it already exists).
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Data to be written to disk.
+    filepath : str
+        File name/path which in which to store the data.
+    """
+
+    if os.path.isfile(filepath):
+        write_mode = 'a'
+        header = False
+    else:
+        write_mode = 'w'
+        header = True
+
+    data.to_csv(path_or_buf=filepath, header=header, index=False, mode=write_mode)

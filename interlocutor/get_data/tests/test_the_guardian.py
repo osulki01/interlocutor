@@ -351,31 +351,3 @@ def test_record_opinion_articles_metadata(fs, monkeypatch):
     actual_metadata = pd.read_csv(mock_metadata_file)
 
     pd.testing.assert_frame_equal(actual_metadata, expected_metadata)
-
-
-# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
-def test_save_article_data_to_disk(fs):
-    """Saves dataframe to file and appends if it already exists."""
-
-    # Save data for the first time
-    mock_metadata_file = 'mock_metadata_file.csv'
-    article_downloader = the_guardian.ArticleDownloader(metadata_file=mock_metadata_file)
-
-    expected_first_wave_metadata = pd.DataFrame({'column_1': ['a', 'b'], 'column_2': [True, True]})
-
-    article_downloader._save_article_data_to_disk(expected_first_wave_metadata)
-
-    actual_first_wave_metadata = pd.read_csv(mock_metadata_file)
-
-    pd.testing.assert_frame_equal(actual_first_wave_metadata, expected_first_wave_metadata)
-
-    # Append data to file
-    second_wave_of_metadata = pd.DataFrame({'column_1': ['c', 'd'], 'column_2': [False, False]})
-
-    article_downloader._save_article_data_to_disk(second_wave_of_metadata)
-
-    actual_total_metadata = pd.read_csv(mock_metadata_file)
-
-    expected_total_metadata = pd.concat(objs=[expected_first_wave_metadata, second_wave_of_metadata], ignore_index=True)
-
-    pd.testing.assert_frame_equal(actual_total_metadata, expected_total_metadata)

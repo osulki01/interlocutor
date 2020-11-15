@@ -4,6 +4,7 @@
 import os
 
 # Third party libraries
+import pandas as pd
 import pytest
 import requests
 import subprocess
@@ -165,3 +166,30 @@ def test_run_cli_command_and_display_exception(capsys):
 
     # Error message can span multiple lines or have trailing space so compare against the content only using strip
     assert expected_output_message in actual_output_message
+
+
+# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
+def test_save_article_data_to_disk(fs):
+    """Saves dataframe to file and appends if it already exists."""
+
+    # Save data for the first time
+    mock_file = 'mock_file.csv'
+
+    expected_first_dataframe = pd.DataFrame({'column_1': ['a', 'b'], 'column_2': [True, True]})
+
+    commons.write_or_append_dataframe_to_csv(data=expected_first_dataframe, filepath=mock_file)
+
+    actual_first_dataframe = pd.read_csv(mock_file)
+
+    pd.testing.assert_frame_equal(actual_first_dataframe, expected_first_dataframe)
+
+    # Append data to file
+    second_wave_of_data = pd.DataFrame({'column_1': ['c', 'd'], 'column_2': [False, False]})
+
+    commons.write_or_append_dataframe_to_csv(data=second_wave_of_data, filepath=mock_file)
+
+    actual_total_dataframe = pd.read_csv(mock_file)
+
+    expected_total_dataframe = pd.concat(objs=[expected_first_dataframe, second_wave_of_data], ignore_index=True)
+
+    pd.testing.assert_frame_equal(actual_total_dataframe, expected_total_dataframe)

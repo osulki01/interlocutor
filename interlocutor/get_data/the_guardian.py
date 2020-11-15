@@ -14,6 +14,7 @@ import tqdm
 
 # Internal imports
 from interlocutor.commons import commons
+from interlocutor.database import postgresql
 
 
 class ArticleDownloader:
@@ -283,22 +284,3 @@ class ArticleDownloader:
 
         print(f'\nSaving article content to {self._article_contents_file}')
         articles_to_crawl.to_csv(self._article_contents_file)
-
-    def _save_article_data_to_disk(self, data: pd.DataFrame) -> None:
-        """
-        Save the articles metadata to a csv file (and append if it already exists).
-
-        Parameters
-        ----------
-        data : pandas.DataFrame
-            Data describing the articles that have already been recorded.
-        """
-
-        if os.path.isfile(self._metadata_file):
-            write_mode = 'a'
-            header = False
-        else:
-            write_mode = 'w'
-            header = True
-
-        data.to_csv(path_or_buf=self._metadata_file, header=header, index=False, mode=write_mode)
