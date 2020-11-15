@@ -173,7 +173,7 @@ def test_upload_dataframe():
     pd.testing.assert_frame_equal(left=actual_df, right=expected_df)
 
 
-def test_upload_new_data_only_to_existing_table():
+def test_upload_new_data_only_to_existing_table_inserts_new_rows_only():
     """Only new rows are inserted into an existing table."""
 
     db_connection = postgresql.DatabaseConnection(environment='stg')
@@ -220,3 +220,51 @@ def test_upload_new_data_only_to_existing_table():
         db_connection._conn.commit()
 
     pd.testing.assert_frame_equal(left=actual_df, right=expected_df)
+
+
+def test_upload_new_data_only_to_existing_table_raises_exception_with_different_columns():
+    """Exception is raised with helpful message if columns in dataframe are not identical to the target table."""
+
+    db_connection = postgresql.DatabaseConnection(environment='stg')
+
+    # Scenario 1, column exists in local dataframe but not target table
+    scenario_1_rows_to_upload = pd.DataFrame(
+        data={
+            'example_string': ["New row"],
+            'example_integer': [6],
+            'example_timestamp': [datetime.datetime(2020, 11, 10, 15, 20, 37, 0)],
+            'non_existent_column_in_target_table': [99]
+        }
+    )
+
+    with pytest.raises(
+            ValueError,
+            match="The column names in the dataframe are not identical to that of the target table."
+    ):
+        db_connection.upload_new_data_only_to_existing_table(
+            dataframe=scenario_1_rows_to_upload,
+            table_name='testing_table',
+            schema='testing_schema',
+            id_column='example_integer'
+        )
+
+    # Scenario 2, column exists in target table but not local dataframe
+    # example_timestamp column no longer included
+    scenario_2_rows_to_upload = pd.DataFrame(
+        data={
+            'example_string': ["New row"],
+            'example_integer': [6],
+            # 'example_timestamp': [datetime.datetime(2020, 11, 10, 15, 20, 37, 0)],
+        }
+    )
+
+    with pytest.raises(
+            ValueError,
+            match="The column names in the dataframe are not identical to that of the target table."
+    ):
+        db_connection.upload_new_data_only_to_existing_table(
+            dataframe=scenario_2_rows_to_upload,
+            table_name='testing_table',
+            schema='testing_schema',
+            id_column='example_integer'
+        )

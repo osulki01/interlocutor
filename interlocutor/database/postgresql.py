@@ -221,8 +221,8 @@ class DatabaseConnection:
         """
         Write contents of a pandas DataFrame to an existing table on postgres database, but only insert new rows.
 
-        This is not an insert statement, not an upsert, so rows which share the same ID as an existing entry are not
-        ignored rather than updating existing entries.
+        This is not an insert statement, not an upsert, so rows which share the same ID as an existing entry are simply
+        ignored rather than updating existing entries in the target table.
 
         Parameters
         ----------
@@ -234,6 +234,11 @@ class DatabaseConnection:
             Name of schema in which the target table sits.
         id_column : str
             Primary key column in target table which identifies whether a row already exists.
+
+        Raises
+        ------
+        ValueError
+            If columns in the `dataframe` are not identical to the target `table_name`.
         """
 
         # Get column names from target table and make sure dataframe is in the same order
@@ -247,10 +252,6 @@ class DatabaseConnection:
             raise ValueError("The column names in the dataframe are not identical to that of the target table.")
 
         dataframe_reorganised_columns = dataframe.reindex(columns=postgres_table_columns)
-
-        print('*' * 50)
-        print(dataframe_reorganised_columns.columns)
-        print()
 
         # Create staging table which will store data intermediately
         staging_table_name = f"{table_name}_staging"
