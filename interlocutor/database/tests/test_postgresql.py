@@ -1,3 +1,11 @@
+"""
+Testing the interaction with postgres database running on database container.
+
+The tests make heavy use of the testing table stored in interlocutor.testing_schema.testing_table. To see what the data
+looks like, you can query that table or see the file Docker/db/staging_data/testing_schema.testing_table.csv from the
+repository root.
+"""
+
 # Standard libraries
 import datetime
 
@@ -142,6 +150,31 @@ def test_get_dataframe_from_query_with_parameters():
     )
 
     pd.testing.assert_frame_equal(left=actual, right=expected)
+
+
+def test_get_min_or_max_from_column():
+    """The minimum or maximum value from a column is returned."""
+
+    db_connection = postgresql.DatabaseConnection(environment='stg')
+
+    common_args = {'table_name': 'testing_table', 'schema': 'testing_schema', 'column': 'example_integer'}
+
+    # Expects correct inputs
+    with pytest.raises(ValueError, match="The `min_or_max` argument must be either 'min' or 'max'."):
+        db_connection.get_min_or_max_from_column(**common_args, min_or_max='standard_dev')
+
+    # Retrieves the minimum
+    expected_min = 1
+
+    actual_min = db_connection.get_min_or_max_from_column(**common_args, min_or_max='min')
+
+    assert actual_min == expected_min
+
+    # Retrieves the maximum
+    expected_max = 2
+    actual_max = db_connection.get_min_or_max_from_column(**common_args, min_or_max='max')
+
+    assert actual_max == expected_max
 
 
 def test_upload_dataframe():

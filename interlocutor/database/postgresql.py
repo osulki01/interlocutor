@@ -3,7 +3,7 @@
 # Standard libraries
 import os
 import pathlib
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 # Third party libraries
 import pandas as pd
@@ -182,6 +182,52 @@ class DatabaseConnection:
         self._close_connection()
 
         return df
+
+    def get_min_or_max_from_column(self, table_name: str, schema: str, min_or_max: str, column: str) -> Any:
+        """
+        Get the minimum or maximum value from a column in a postgres table.
+
+        Parameters
+        ----------
+        table_name : str
+            Name of postgres table to be queried.
+        schema : str (default None)
+            Name of schema in which the table sits.
+        min_or_max : str ('min' or 'max')
+            Whether to retrieve the minimum or the maximum.
+        column : str
+            Which column to take the min or max from.
+
+        Returns
+        -------
+        Any
+            The minimum or maximum value from the column, which will be whatever data type corresponds to the column
+            data type on postgres.
+
+        Raises
+        ------
+        ValueError
+            If `min_or_max` is neither 'min' nor 'max'.
+        """
+
+        if min_or_max == 'min':
+            sql_query = psy_sql.SQL("SELECT MIN({column}) FROM {schema_and_table}").format(
+                column=psy_sql.Identifier(column),
+                schema_and_table=psy_sql.Identifier(schema, table_name)
+            )
+
+        elif min_or_max == 'max':
+            sql_query = psy_sql.SQL("SELECT MAX({column}) FROM {schema_and_table}").format(
+                column=psy_sql.Identifier(column),
+                schema_and_table=psy_sql.Identifier(schema, table_name)
+            )
+
+        else:
+            raise ValueError("The `min_or_max` argument must be either 'min' or 'max'.")
+
+        min_or_max_column = self.get_dataframe(query=sql_query)
+
+        return min_or_max_column[min_or_max].values[0]
 
     def upload_dataframe(
             self,
