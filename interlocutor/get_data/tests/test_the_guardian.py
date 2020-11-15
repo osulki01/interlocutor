@@ -1,6 +1,7 @@
 """Testing interaction with The Guardian API and downloading of article metadata/content."""
 
 # Standard libraries
+import datetime
 from typing import Any, Dict
 
 # Third party libraries
@@ -12,6 +13,7 @@ import time
 
 # Internal imports
 from interlocutor.get_data import the_guardian
+from interlocutor.database import postgresql
 
 
 def test_call_api_and_display_exceptions_raises_exception():
@@ -113,48 +115,31 @@ def test_get_article_content(monkeypatch):
     assert actual_article_content == expected_article_content
 
 
-# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
-def test_get_latest_opinion_articles_datetime_reached(fs):
+def test_get_latest_opinion_articles_datetime_reached():
     """
-    Correct marker of progress made by previous API calls is retrieved, by showing the latest publication datetime
+    Correct marker of progress made by previous API calls is retrieved by showing the latest publication datetime
     reached.
     """
 
-    # No previous attempts
-    mock_metadata_file = 'mock_metadata_file.csv'
+    # Metadata table
+    expected_metadata = '2002-02-25T01:53:00Z'
 
-    article_downloader = the_guardian.ArticleDownloader(metadata_file=mock_metadata_file)
+    article_downloader = the_guardian.ArticleDownloader(environment='stg')
 
-    latest_datetime_reached_no_previous_attempts = article_downloader._get_latest_opinion_articles_datetime_reached()
+    actual_metadata = article_downloader._get_latest_opinion_articles_datetime_reached(data_type='metadata')
 
-    assert latest_datetime_reached_no_previous_attempts is None
+    assert actual_metadata == expected_metadata
 
-    # Previous attempts
-    mock_metadata_dict = {
-        'id': ['politics/1990/nov/23/past.conservatives', 'world/2002/feb/25/race.uk'],
-        'type': ['article',	'article'],
-        'sectionId': ['commentisfree',	'commentisfree'],
-        'sectionName': ['Opinion',	'Opinion'],
-        'webPublicationDate': ['1990-11-23T16:47:00Z', '2002-02-25T01:53:00Z'],
-        'webTitle': ['The Thatcher Years | Hugo Young', 'Gary Younge: Terms of abuse'],
-        'webUrl': ['https://www.theguardian.com/politics/1990/nov/23/past.conservatives',
-                   'https://www.theguardian.com/world/2002/feb/25/race.uk'],
-        'apiUrl': ['https://content.guardianapis.com/politics/1990/nov/23/past.conservatives',
-                   'https://content.guardianapis.com/world/2002/feb/25/race.uk'],
-        'isHosted': ['FALSE', 'FALSE'],
-        'pillarId': ['pillar/opinion', 'pillar/opinion'],
-        'pillarName': ['Opinion', 'Opinion'],
-    }
+    # Content table
+    expected_content = '2002-02-25T01:53:00Z'
 
-    mock_metadata_df = pd.DataFrame(data=mock_metadata_dict)
-    mock_metadata_df.to_csv(mock_metadata_file)
+    actual_content = article_downloader._get_latest_opinion_articles_datetime_reached(data_type='content')
 
-    latest_datetime_reached_previous_attempts = article_downloader._get_latest_opinion_articles_datetime_reached()
-
-    assert latest_datetime_reached_previous_attempts == '2002-02-25T01:53:00Z'
+    assert actual_content == expected_content
 
 
 # "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
+@pytest.mark.skip(reason="Changing approach to use database rather than local CSVs")
 def test_record_opinion_articles_content(fs, monkeypatch):
     """
     The content of articles are pulled and saved to disk, and the script can pick up from where it last finished.
@@ -238,13 +223,11 @@ def test_record_opinion_articles_content(fs, monkeypatch):
     pd.testing.assert_frame_equal(actual_article_contents_second_time, expected_article_contents_second_time)
 
 
-# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
-def test_record_opinion_articles_metadata(fs, monkeypatch):
+# @pytest.mark.skip(reason="Changing approach to use database rather than local CSVs")
+def test_record_opinion_articles_metadata(monkeypatch):
     """
     Downloader iterates through pages and saves them to disk.
     """
-
-    total_pages = 2
 
     def mock_api_call(url: str, params: dict) -> Dict[str, Any]:
         """Mock functionality of making Guardian API call."""
@@ -256,7 +239,7 @@ def test_record_opinion_articles_metadata(fs, monkeypatch):
                 'startIndex': 1,
                 'pageSize': 2,
                 'currentPage': 1,
-                'pages': total_pages,
+                'pages': 1,
                 'orderBy': 'newest',
                 'tag': {
                     'id': 'commentisfree/commentisfree',
@@ -298,56 +281,72 @@ def test_record_opinion_articles_metadata(fs, monkeypatch):
         }
 
     # Set up downloader but overwrite API call with mock data
-    mock_metadata_file = 'mock_metadata_file.csv'
-    article_downloader = the_guardian.ArticleDownloader(metadata_file=mock_metadata_file)
+    article_downloader = the_guardian.ArticleDownloader(environment='stg')
     monkeypatch.setattr(article_downloader, "_call_api_and_display_exceptions", mock_api_call)
 
-    # Call function in order to inspect output saved to disk
     article_downloader.record_opinion_articles_metadata()
 
-    # There are two pages in the mock data, so it is expected that the data would be pulled twice as we have forced the
-    # API call to get the same response each time
     expected_metadata = pd.DataFrame(
         {
             'id': [
-                'commentisfree/2020/oct/04/johnson-is-a-poor-prime-minister',
-                'commentisfree/2020/oct/04/university-in-a-pandemic',
+                'e8c5e312fae36c43d965a0e3da84e68d',
+                '052015a6d57893adfa4be70521b1ad3b',
+                '7d2669e5a86f5a5eb16862f691482fe3',
+                '069738f52edca2125142e0952dbbfcc0'
+            ],
+            'guardian_id': [
+                'politics/1990/nov/23/past.conservatives',
+                'world/2002/feb/25/race.uk',
                 'commentisfree/2020/oct/04/johnson-is-a-poor-prime-minister',
                 'commentisfree/2020/oct/04/university-in-a-pandemic'
             ],
-            'type': ['article', 'article', 'article', 'article'],
-            'sectionId': ['commentisfree', 'commentisfree', 'commentisfree', 'commentisfree'],
-            'sectionName': ['Opinion', 'Opinion', 'Opinion', 'Opinion'],
-            'webPublicationDate': [
-                '2020-10-04T10:35:19Z',
-                '2020-10-04T07:30:45Z',
-                '2020-10-04T10:35:19Z',
-                '2020-10-04T07:30:45Z'
+            'content_type': ['article', 'article', 'article', 'article'],
+            'section_id': ['commentisfree', 'commentisfree', 'commentisfree', 'commentisfree'],
+            'section_name': ['Opinion', 'Opinion', 'Opinion', 'Opinion'],
+            'web_publication_timestamp': [
+                datetime.datetime(1990, 11, 23, 16, 47, 0, 0),
+                datetime.datetime(2002, 2, 25, 1, 53, 0, 0),
+                datetime.datetime(2020, 10, 4, 10, 35, 19, 0),
+                datetime.datetime(2020, 10, 4, 7, 30, 45, 0),
             ],
-            'webTitle': [
-                'Are Tory MPs really so surprised that Boris Johnson is a poor prime minister?',
-                'Up close the trials of university life in a pandemic. We should have done better.',
+            'web_title': [
+                'The Thatcher Years | Hugo Young',
+                'Gary Younge: Terms of abuse',
                 'Are Tory MPs really so surprised that Boris Johnson is a poor prime minister?',
                 'Up close the trials of university life in a pandemic. We should have done better.'
             ],
-            'webUrl': [
-                'https://www.theguardian.com/commentisfree/2020/oct/04/poor-prime-minister',
-                'https://www.theguardian.com/commentisfree/2020/oct/04/university-in-a-pandemic',
+            'web_url': [
+                'https://www.theguardian.com/politics/1990/nov/23/past.conservatives',
+                'https://www.theguardian.com/world/2002/feb/25/race.uk',
                 'https://www.theguardian.com/commentisfree/2020/oct/04/poor-prime-minister',
                 'https://www.theguardian.com/commentisfree/2020/oct/04/university-in-a-pandemic'
             ],
-            'apiUrl': [
-                'https://content.guardianapis.com/commentisfree/2020/oct/04/poor-prime-minister',
-                'https://content.guardianapis.com/commentisfree/2020/oct/04/university-in-a-pandemic',
+            'api_url': [
+                'https://content.guardianapis.com/politics/1990/nov/23/past.conservatives',
+                'https://content.guardianapis.com/world/2002/feb/25/race.uk',
                 'https://content.guardianapis.com/commentisfree/2020/oct/04/poor-prime-minister',
                 'https://content.guardianapis.com/commentisfree/2020/oct/04/university-in-a-pandemic'
             ],
-            'isHosted': [False, False, False, False],
-            'pillarId': ['pillar/opinion', 'pillar/opinion', 'pillar/opinion', 'pillar/opinion'],
-            'pillarName': ['Opinion', 'Opinion', 'Opinion', 'Opinion']
+            'pillar_id': ['pillar/opinion', 'pillar/opinion', 'pillar/opinion', 'pillar/opinion'],
+            'pillar_name': ['Opinion', 'Opinion', 'Opinion', 'Opinion']
         }
     )
 
-    actual_metadata = pd.read_csv(mock_metadata_file)
+    db_connection = postgresql.DatabaseConnection(environment='stg')
+
+    actual_metadata = db_connection.get_dataframe(table_name='article_metadata', schema='the_guardian')
+
+    # Tidy up and delete newly inserted rows
+    db_connection._create_connection()
+    with db_connection._conn.cursor() as curs:
+        curs.execute(
+            """
+            DELETE FROM the_guardian.article_metadata 
+            WHERE id IN ('7d2669e5a86f5a5eb16862f691482fe3', '069738f52edca2125142e0952dbbfcc0');
+            """
+        )
+
+        db_connection._conn.commit()
+    db_connection._close_connection()
 
     pd.testing.assert_frame_equal(actual_metadata, expected_metadata)

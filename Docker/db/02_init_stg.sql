@@ -29,3 +29,4 @@ COPY testing_schema.testing_table FROM '/staging_data/testing_schema.testing_tab
 ---------------------------------------------------
 
 COPY the_guardian.article_metadata FROM '/staging_data/the_guardian.article_metadata.csv' WITH CSV HEADER;
+COPY the_guardian.article_content FROM '/staging_data/the_guardian.article_content.csv' WITH CSV HEADER;

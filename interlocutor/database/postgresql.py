@@ -308,25 +308,27 @@ class DatabaseConnection:
             index=False
         )
 
-        # Transfer new rows from staging to target table
-        insert_query = psy_sql.SQL("INSERT INTO {target_schema_and_table} "
-                                   "SELECT * FROM {staging_table_schema_and_table} "
-                                   "WHERE {id_column} NOT IN "
-                                   "(SELECT DISTINCT {id_column} FROM {target_schema_and_table})").format(
-            target_schema_and_table=psy_sql.Identifier(schema, table_name),
-            staging_table_schema_and_table=psy_sql.Identifier(schema, staging_table_name),
-            id_column=psy_sql.Identifier(id_column)
-        )
+        try:
+            # Transfer new rows from staging to target table
+            insert_query = psy_sql.SQL("INSERT INTO {target_schema_and_table} "
+                                       "SELECT * FROM {staging_table_schema_and_table} "
+                                       "WHERE {id_column} NOT IN "
+                                       "(SELECT DISTINCT {id_column} FROM {target_schema_and_table})").format(
+                target_schema_and_table=psy_sql.Identifier(schema, table_name),
+                staging_table_schema_and_table=psy_sql.Identifier(schema, staging_table_name),
+                id_column=psy_sql.Identifier(id_column)
+            )
 
-        self._create_connection()
+            self._create_connection()
 
-        with self._conn.cursor() as curs:
-            curs.execute(query=insert_query)
-            self._conn.commit()
+            with self._conn.cursor() as curs:
+                curs.execute(query=insert_query)
+                self._conn.commit()
 
-        self._close_connection()
+            self._close_connection()
 
-        # Drop intermediate staging table
-        self.execute_database_operation(
-            sql_command=psy_sql.SQL("DROP TABLE {staging_table_schema_and_table}").format(
-                staging_table_schema_and_table=psy_sql.Identifier(schema, staging_table_name)))
+        finally:
+            # Drop intermediate staging table
+            self.execute_database_operation(
+                sql_command=psy_sql.SQL("DROP TABLE {staging_table_schema_and_table}").format(
+                    staging_table_schema_and_table=psy_sql.Identifier(schema, staging_table_name)))

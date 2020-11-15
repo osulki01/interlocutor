@@ -42,3 +42,24 @@ COMMENT ON COLUMN the_guardian.article_metadata.web_url IS 'URL of the html cont
 COMMENT ON COLUMN the_guardian.article_metadata.api_url IS 'URL of the raw content';
 COMMENT ON COLUMN the_guardian.article_metadata.pillar_id IS 'High-level section ID';
 COMMENT ON COLUMN the_guardian.article_metadata.pillar_name IS 'High-level section name';
+
+
+-- Content
+CREATE TABLE the_guardian.article_content
+(
+    id                        CHAR(32) PRIMARY KEY,
+    guardian_id               VARCHAR,
+    web_publication_timestamp TIMESTAMP,
+    api_url                   VARCHAR,
+    content                   VARCHAR,
+    CONSTRAINT fk_id
+      FOREIGN KEY(id)
+	  REFERENCES the_guardian.article_metadata(id)
+);
+
+COMMENT ON TABLE the_guardian.article_content IS 'Text content of articles.';
+COMMENT ON COLUMN the_guardian.article_content.id IS 'Hash of guardian_id to create unique identifier of fixed length';
+COMMENT ON COLUMN the_guardian.article_content.guardian_id IS 'Path to the article content';
+COMMENT ON COLUMN the_guardian.article_content.web_publication_timestamp IS 'Combined date and time of publication';
+COMMENT ON COLUMN the_guardian.article_content.api_url IS 'URL of the raw content';
+COMMENT ON COLUMN the_guardian.article_content.content IS 'Text content of the article';

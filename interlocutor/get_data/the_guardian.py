@@ -1,9 +1,10 @@
 """Interact with The Guardian API and download article metadata/content."""
 
 # Standard libraries
+import hashlib
 import os
 import time
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 # Third party libraries
 from bs4 import BeautifulSoup
@@ -22,23 +23,16 @@ class ArticleDownloader:
     Call The Guardian API to capture information about the articles in its Opinion section.
     """
 
-    def __init__(
-            self,
-            article_contents_file: str = '../data/the_guardian/opinion_articles_contents.csv',
-            metadata_file: str = '../data/the_guardian/opinion_articles_metadata.csv'
-    ):
+    def __init__(self, environment: str = 'stg'):
         """
         Parameters
         ----------
-        article_contents_file : str (default '../data/the_guardian/opinion_articles_contents.csv')
-            File name/path which contains the text content of the articles.
-        metadata_file : str (default '../data/the_guardian/opinion_articles_contents.csv')
-            File name/path which contains metadata about the articles which have already been stored.
+        environment : str (default 'stg')
+            Deployment environment, either 'stg' or 'prd'.
         """
 
         self._api_key = os.getenv('GUARDIAN_API_KEY')
-        self._article_contents_file = article_contents_file
-        self._metadata_file = metadata_file
+        self._db_connection = postgresql.DatabaseConnection(environment=environment)
         self._opinion_section_url = 'https://content.guardianapis.com/commentisfree/commentisfree'
 
     def _call_api_and_display_exceptions(self, url: str, params: dict = None) -> Dict[str, Any]:
@@ -114,24 +108,40 @@ class ArticleDownloader:
 
         return article_content_text
 
-    def _get_latest_opinion_articles_datetime_reached(self) -> Union[str, None]:
+    def _get_latest_opinion_articles_datetime_reached(self, data_type: str) -> Union[str, None]:
         """
         Get the latest publication date reached by previous efforts to extract all articles from the Opinion section.
+
+        Parameters
+        ----------
+        data_type : str (either 'metadata' or 'content')
+            Whether to check the most recent article reached in terms of collecting its metadata or actual content.
 
         Returns
         -------
         str or None
             Most recent publication date of the articles that have already had their metadata pulled
-            e.g. '2020-08-25T06:00:46Z'. None if no article metadata have been saved to disk already.
+            e.g. '2020-08-25T06:00:46Z'. None if no article metadata have been saved to the database already.
         """
 
-        if os.path.isfile(self._metadata_file):
-            existing_article_metadata = pd.read_csv(self._metadata_file)
-            latest_web_publication_datetime = existing_article_metadata['webPublicationDate'].max()
+        if data_type == 'metadata':
+            table_to_query = 'article_metadata'
+        elif data_type == 'content':
+            table_to_query = 'article_content'
         else:
-            latest_web_publication_datetime = None
+            raise ValueError("`data_type` must either be 'metadata' or 'content'")
 
-        return latest_web_publication_datetime
+        most_recent = self._db_connection.get_min_or_max_from_column(
+            table_name=table_to_query,
+            schema='the_guardian',
+            min_or_max='max',
+            column='web_publication_timestamp'
+        )
+
+        if most_recent is not None:
+            most_recent = pd.to_datetime(most_recent).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        return most_recent
 
     # The Guardian API only allows you to progress through a certain number of pages, so retry and pick up from latest
     # article reached if the method hits an HTTP error.
@@ -148,7 +158,7 @@ class ArticleDownloader:
         # pages have to be called to cover all articles
         page_size = 200
 
-        most_recent_datetime = self._get_latest_opinion_articles_datetime_reached()
+        most_recent_datetime = self._get_latest_opinion_articles_datetime_reached(data_type='metadata')
 
         if most_recent_datetime:
             print(f'Articles published on or after {most_recent_datetime} will be processed.')
@@ -187,26 +197,19 @@ class ArticleDownloader:
                 opinion_articles_metadata_per_api_call.append(opinion_articles_metadata_df)
 
                 # Be polite, do not bombard API with too many requests at once
-                time.sleep(2)
+                time.sleep(0.5)
 
             # Break the loop if an error is encountered, but save the progress made
             except requests.exceptions.RequestException as request_error:
                 print(f'Error making API request on Page {page_index} of {total_pages}')
                 print(f'Exception: {request_error}')
-
-                if opinion_articles_metadata_per_api_call is not None:
-                    print(f'\nSaving metadata already pulled to {self._metadata_file}')
-                    all_opinion_articles = pd.concat(opinion_articles_metadata_per_api_call)
-                    self._save_article_data_to_disk(all_opinion_articles)
-
-                else:
-                    print('No article metadata pulled.')
+                print(f'\nSaving metadata already pulled to the_guardian.metadata postgres table.')
+                self._write_metadata_to_postgres(metadata_per_api_call=opinion_articles_metadata_per_api_call)
 
                 raise request_error
 
-        print(f'\nAll articles processed, saving metadata to {self._metadata_file}')
-        all_opinion_articles = pd.concat(opinion_articles_metadata_per_api_call)
-        self._save_article_data_to_disk(all_opinion_articles)
+        print(f'\nAll articles processed, saving data to the_guardian.metadata postgres table.')
+        self._write_metadata_to_postgres(metadata_per_api_call=opinion_articles_metadata_per_api_call)
 
     def record_opinion_articles_content(self, number_of_articles: int = 100) -> None:
         """
@@ -284,3 +287,53 @@ class ArticleDownloader:
 
         print(f'\nSaving article content to {self._article_contents_file}')
         articles_to_crawl.to_csv(self._article_contents_file)
+
+    def _write_metadata_to_postgres(self, metadata_per_api_call: List[pd.DataFrame]) -> None:
+        """
+        Prepare the data gathered from each API call and write to postgres.
+
+        Parameters
+        ----------
+        metadata_per_api_call : list
+            List of dataframes, each containing the metadata collected per API call.
+        """
+
+        if len(metadata_per_api_call) == 0:
+            print('No article metadata pulled.')
+            return
+
+        all_opinion_articles = pd.concat(metadata_per_api_call)
+
+        all_opinion_articles.drop(columns='isHosted', inplace=True)
+
+        all_opinion_articles.rename(
+            columns={
+                'id': 'guardian_id',
+                'type': 'content_type',
+                'sectionId': 'section_id',
+                'sectionName': 'section_name',
+                'webPublicationDate': 'web_publication_timestamp',
+                'webTitle': 'web_title',
+                'webUrl': 'web_url',
+                'apiUrl': 'api_url',
+                'pillarId': 'pillar_id',
+                'pillarName': 'pillar_name'
+            },
+            inplace=True
+        )
+
+        all_opinion_articles['web_publication_timestamp'] = pd.to_datetime(
+            all_opinion_articles['web_publication_timestamp'],
+            format='%Y-%m-%dT%H:%M:%SZ'
+        )
+
+        all_opinion_articles['id'] = [
+            hashlib.md5(val.encode('utf-8')).hexdigest() for val in all_opinion_articles['guardian_id']
+        ]
+
+        self._db_connection.upload_new_data_only_to_existing_table(
+            dataframe=all_opinion_articles,
+            table_name='article_metadata',
+            schema='the_guardian',
+            id_column='id'
+        )
