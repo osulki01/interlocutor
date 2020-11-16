@@ -197,12 +197,12 @@ class ArticleDownloader:
             except requests.exceptions.RequestException as request_error:
                 print(f'Error making API request on Page {page_index} of {total_pages}')
                 print(f'Exception: {request_error}')
-                print(f'\nSaving metadata already pulled to the_guardian.metadata postgres table.')
+                print('\nSaving metadata already pulled to the_guardian.metadata postgres table.')
                 self._write_metadata_to_postgres(metadata_per_api_call=opinion_articles_metadata_per_api_call)
 
                 raise request_error
 
-        print(f'\nAll articles processed, saving data to the_guardian.metadata postgres table.')
+        print('\nAll articles processed, saving data to the_guardian.metadata postgres table.')
         self._write_metadata_to_postgres(metadata_per_api_call=opinion_articles_metadata_per_api_call)
 
     def record_opinion_articles_content(self, number_of_articles: int = 100) -> None:

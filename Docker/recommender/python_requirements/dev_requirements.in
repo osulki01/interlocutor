@@ -1,8 +1,9 @@
 -r base_requirements.in
 
+coverage
 flake8
 jupyter
 pyfakefs
+pylint
 pytest
-pytest-cov
 pyyaml

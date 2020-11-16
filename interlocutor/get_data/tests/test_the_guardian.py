@@ -340,7 +340,7 @@ def test_record_opinion_articles_metadata(monkeypatch):
     with db_connection._conn.cursor() as curs:
         curs.execute(
             """
-            DELETE FROM the_guardian.article_metadata 
+            DELETE FROM the_guardian.article_metadata
             WHERE id IN ('7d2669e5a86f5a5eb16862f691482fe3', '069738f52edca2125142e0952dbbfcc0');
             """
         )

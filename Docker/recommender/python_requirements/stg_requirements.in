@@ -1,7 +1,6 @@
 -r base_requirements.in
 
-flake8
+coverage
 pyfakefs
 pytest
-pytest-cov
 pyyaml
