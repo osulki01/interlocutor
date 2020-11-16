@@ -137,74 +137,6 @@ class ArticleDownloader:
 
         return most_recent
 
-    # The Guardian API only allows you to progress through a certain number of pages, so retry and pick up from latest
-    # article reached if the method hits an HTTP error.
-    @commons.retry(total_attempts=5, exceptions_to_check=requests.exceptions.HTTPError)
-    def record_opinion_articles_metadata(self) -> None:
-        """
-        Save a dataframe to disk storing all of articles appearing in The Guardian Opinion section
-        (https://www.theguardian.com/uk/commentisfree) and how they can be accessed via the API.
-
-        Dataframe contains one row per article in The Guardian Opinion section detailing metadata about the article.
-        """
-
-        # Only a certain number of articles can be pulled with each call (max 200 articles), so calculate how many
-        # pages have to be called to cover all articles
-        page_size = 200
-
-        most_recent_datetime = self._get_latest_opinion_articles_datetime_reached(data_type='metadata')
-
-        if most_recent_datetime:
-            print(f'Articles published on or after {most_recent_datetime} will be processed.')
-
-        opinion_section_metadata = self._call_api_and_display_exceptions(
-            url=self._opinion_section_url,
-            params={'page-size': page_size, 'from-date': most_recent_datetime}
-        )
-        total_pages = opinion_section_metadata['response']['pages']
-
-        # Call API to record remaining articles
-        opinion_articles_metadata_per_api_call = []
-
-        for page_index in tqdm.tqdm(
-                desc='API pages processed',
-                iterable=range(1, (total_pages + 1)),
-                total=total_pages,
-                unit=' page'
-        ):
-
-            try:
-                opinion_articles_metadata_json = self._call_api_and_display_exceptions(
-                    url=self._opinion_section_url,
-                    params={
-                        'page': page_index,
-                        'page-size': page_size,
-                        'order-by': 'oldest',
-                        'from-date': most_recent_datetime
-                    }
-                )
-
-                opinion_articles_metadata_df = pd.DataFrame.from_dict(
-                    data=opinion_articles_metadata_json['response']['results']
-                )
-
-                opinion_articles_metadata_per_api_call.append(opinion_articles_metadata_df)
-
-                # Be polite, do not bombard API with too many requests at once
-                time.sleep(0.5)
-
-            # Break the loop if an error is encountered, but save the progress made
-            except requests.exceptions.RequestException as request_error:
-                print(f'Error making API request on Page {page_index} of {total_pages}')
-                print(f'Exception: {request_error}')
-                print('\nSaving metadata already pulled to the_guardian.metadata postgres table.')
-                self._write_metadata_to_postgres(metadata_per_api_call=opinion_articles_metadata_per_api_call)
-
-                raise request_error
-
-        print('\nAll articles processed, saving data to the_guardian.metadata postgres table.')
-        self._write_metadata_to_postgres(metadata_per_api_call=opinion_articles_metadata_per_api_call)
-
     def record_opinion_articles_content(self, number_of_articles: int = 100) -> None:
         """
         Save a dataframe to disk storing the content of of articles appearing in The Guardian Opinion section
@@ -281,6 +213,74 @@ class ArticleDownloader:
 
         print(f'\nSaving article content to {self._article_contents_file}')
         articles_to_crawl.to_csv(self._article_contents_file)
+
+    # The Guardian API only allows you to progress through a certain number of pages, so retry and pick up from latest
+    # article reached if the method hits an HTTP error.
+    @commons.retry(total_attempts=5, exceptions_to_check=requests.exceptions.HTTPError)
+    def record_opinion_articles_metadata(self) -> None:
+        """
+        Save a dataframe to disk storing all of articles appearing in The Guardian Opinion section
+        (https://www.theguardian.com/uk/commentisfree) and how they can be accessed via the API.
+
+        Dataframe contains one row per article in The Guardian Opinion section detailing metadata about the article.
+        """
+
+        # Only a certain number of articles can be pulled with each call (max 200 articles), so calculate how many
+        # pages have to be called to cover all articles
+        page_size = 200
+
+        most_recent_datetime = self._get_latest_opinion_articles_datetime_reached(data_type='metadata')
+
+        if most_recent_datetime:
+            print(f'Articles published on or after {most_recent_datetime} will be processed.')
+
+        opinion_section_metadata = self._call_api_and_display_exceptions(
+            url=self._opinion_section_url,
+            params={'page-size': page_size, 'from-date': most_recent_datetime}
+        )
+        total_pages = opinion_section_metadata['response']['pages']
+
+        # Call API to record remaining articles
+        opinion_articles_metadata_per_api_call = []
+
+        for page_index in tqdm.tqdm(
+                desc='API pages processed',
+                iterable=range(1, (total_pages + 1)),
+                total=total_pages,
+                unit=' page'
+        ):
+
+            try:
+                opinion_articles_metadata_json = self._call_api_and_display_exceptions(
+                    url=self._opinion_section_url,
+                    params={
+                        'page': page_index,
+                        'page-size': page_size,
+                        'order-by': 'oldest',
+                        'from-date': most_recent_datetime
+                    }
+                )
+
+                opinion_articles_metadata_df = pd.DataFrame.from_dict(
+                    data=opinion_articles_metadata_json['response']['results']
+                )
+
+                opinion_articles_metadata_per_api_call.append(opinion_articles_metadata_df)
+
+                # Be polite, do not bombard API with too many requests at once
+                time.sleep(0.5)
+
+            # Break the loop if an error is encountered, but save the progress made
+            except requests.exceptions.RequestException as request_error:
+                print(f'Error making API request on Page {page_index} of {total_pages}')
+                print(f'Exception: {request_error}')
+                print('\nSaving metadata already pulled to the_guardian.metadata postgres table.')
+                self._write_metadata_to_postgres(metadata_per_api_call=opinion_articles_metadata_per_api_call)
+
+                raise request_error
+
+        print('\nAll articles processed, saving data to the_guardian.metadata postgres table.')
+        self._write_metadata_to_postgres(metadata_per_api_call=opinion_articles_metadata_per_api_call)
 
     def _write_metadata_to_postgres(self, metadata_per_api_call: List[pd.DataFrame]) -> None:
         """
