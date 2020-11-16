@@ -301,7 +301,7 @@ class DatabaseConnection:
         dataframe_reorganised_columns = dataframe.reindex(columns=postgres_table_columns)
 
         # Create staging table which will store data intermediately
-        staging_table_name = f"{table_name}_staging"
+        staging_table_name = f"{table_name}_programmatic_staging"
         self.upload_dataframe(
             dataframe=dataframe_reorganised_columns,
             table_name=staging_table_name,
