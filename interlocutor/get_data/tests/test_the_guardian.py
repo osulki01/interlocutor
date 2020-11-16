@@ -124,7 +124,7 @@ def test_get_latest_opinion_articles_datetime_reached():
     # Metadata table
     expected_metadata = '2002-02-25T01:53:00Z'
 
-    article_downloader = the_guardian.ArticleDownloader(environment='stg')
+    article_downloader = the_guardian.ArticleDownloader()
 
     actual_metadata = article_downloader._get_latest_opinion_articles_datetime_reached(data_type='metadata')
 
@@ -280,7 +280,7 @@ def test_record_opinion_articles_metadata(monkeypatch):
         }
 
     # Set up downloader but overwrite API call with mock data
-    article_downloader = the_guardian.ArticleDownloader(environment='stg')
+    article_downloader = the_guardian.ArticleDownloader()
     monkeypatch.setattr(article_downloader, "_call_api_and_display_exceptions", mock_api_call)
 
     article_downloader.record_opinion_articles_metadata()
@@ -331,7 +331,7 @@ def test_record_opinion_articles_metadata(monkeypatch):
         }
     )
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     actual_metadata = db_connection.get_dataframe(table_name='article_metadata', schema='the_guardian')
 

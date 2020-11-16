@@ -18,15 +18,16 @@ from interlocutor.commons import commons
 class DatabaseConnection:
     """Helper class to connect and execute code against postgres database."""
 
-    def __init__(self, environment: str, database: str = 'interlocutor'):
+    def __init__(self, database: str = 'interlocutor'):
         """
         Parameters
         ----------
-        environment : str
-            Deployment environment, either 'stg' or 'prd'.
         database : str (default 'interlocutor')
             Name of the database to connect to.
         """
+
+        # Ensure dev environment only connects to staging as no 'dev' database exists
+        environment = 'stg' if os.getenv('DEPLOYMENT_ENVIRONMENT') == 'dev' else os.getenv('DEPLOYMENT_ENVIRONMENT')
 
         self._database = database
         self._username = os.getenv('POSTGRES_USER')

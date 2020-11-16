@@ -23,16 +23,10 @@ class ArticleDownloader:
     Call The Guardian API to capture information about the articles in its Opinion section.
     """
 
-    def __init__(self, environment: str = 'stg'):
-        """
-        Parameters
-        ----------
-        environment : str (default 'stg')
-            Deployment environment, either 'stg' or 'prd'.
-        """
+    def __init__(self):
 
         self._api_key = os.getenv('GUARDIAN_API_KEY')
-        self._db_connection = postgresql.DatabaseConnection(environment=environment)
+        self._db_connection = postgresql.DatabaseConnection()
         self._opinion_section_url = 'https://content.guardianapis.com/commentisfree/commentisfree'
 
     def _call_api_and_display_exceptions(self, url: str, params: dict = None) -> Dict[str, Any]:

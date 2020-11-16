@@ -20,7 +20,7 @@ from interlocutor.database import postgresql
 def test_execute_database_operation():
     """SQL command successfully executed on database."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     # Mock data which will be inserted into permanent testing table as a new row
     example_integer = 3
@@ -68,7 +68,7 @@ def test_execute_database_operation():
 def test_get_column_names_existing_table():
     """The column names of an existing table are successfully retrieved."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     expected_column_names = ['example_integer', 'example_string', 'example_timestamp']
 
@@ -83,7 +83,7 @@ def test_get_column_names_existing_table():
 def test_get_dataframe_demands_correct_arguments():
     """Exceptions or warnings should be raised if an incorrect combination of arguments is provided."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     # Scenario 1: Both query and table name are provided. Only one should be provided to either execute a query or
     # retrieve a full table.
@@ -108,7 +108,7 @@ def test_get_dataframe_demands_correct_arguments():
 def test_get_dataframe_from_table_name():
     """All data from a table can be retrieved simply by providing a schema and table name."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     expected = pd.DataFrame(
         columns=['example_integer', 'example_string', 'example_timestamp'],
@@ -125,7 +125,7 @@ def test_get_dataframe_from_table_name():
 def test_get_dataframe_from_query():
     """All data from a table can be retrieved by providing a query."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     expected = pd.DataFrame(columns=['example_integer', 'example_string'], data=[[1, 'First value']])
 
@@ -139,7 +139,7 @@ def test_get_dataframe_from_query():
 def test_get_dataframe_from_query_with_parameters():
     """All data from a table can be retrieved by providing a parameterised query."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     expected = pd.DataFrame(columns=['example_integer', 'example_string'], data=[[1, 'First value']])
 
@@ -155,7 +155,7 @@ def test_get_dataframe_from_query_with_parameters():
 def test_get_min_or_max_from_column():
     """The minimum or maximum value from a column is returned."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     common_args = {'table_name': 'testing_table', 'schema': 'testing_schema', 'column': 'example_integer'}
 
@@ -180,7 +180,7 @@ def test_get_min_or_max_from_column():
 def test_upload_dataframe():
     """Dataframe is successfully written to a permanent postgres table."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     # Create dataframe and upload to postgres
     expected_df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
@@ -209,7 +209,7 @@ def test_upload_dataframe():
 def test_upload_new_data_only_to_existing_table_inserts_new_rows_only():
     """Only new rows are inserted into an existing table."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     # Create dataframe with one row where the example_integer index already exists in the target table and should not be
     # inserted (1), and a new index (99) which should go in.
@@ -258,7 +258,7 @@ def test_upload_new_data_only_to_existing_table_inserts_new_rows_only():
 def test_upload_new_data_only_to_existing_table_raises_exception_with_different_columns():
     """Exception is raised with helpful message if columns in dataframe are not identical to the target table."""
 
-    db_connection = postgresql.DatabaseConnection(environment='stg')
+    db_connection = postgresql.DatabaseConnection()
 
     # Scenario 1, column exists in local dataframe but not target table
     scenario_1_rows_to_upload = pd.DataFrame(
