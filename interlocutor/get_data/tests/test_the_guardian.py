@@ -223,7 +223,6 @@ def test_record_opinion_articles_content(fs, monkeypatch):
     pd.testing.assert_frame_equal(actual_article_contents_second_time, expected_article_contents_second_time)
 
 
-# @pytest.mark.skip(reason="Changing approach to use database rather than local CSVs")
 def test_record_opinion_articles_metadata(monkeypatch):
     """
     Downloader iterates through pages and saves them to disk.
