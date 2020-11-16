@@ -180,13 +180,13 @@ class DatabaseConnection:
 
         if table_name:
             query_with_table = psy_sql.SQL("SELECT * FROM {}").format(psy_sql.Identifier(schema, table_name))
-            df = pd.read_sql(sql=query_with_table, con=self._conn)
+            dataframe = pd.read_sql(sql=query_with_table, con=self._conn)
         else:
-            df = pd.read_sql(sql=query, con=self._conn, params=query_params)
+            dataframe = pd.read_sql(sql=query, con=self._conn, params=query_params)
 
         self._close_connection()
 
-        return df
+        return dataframe
 
     def get_min_or_max_from_column(self, table_name: str, schema: str, min_or_max: str, column: str) -> Any:
         """

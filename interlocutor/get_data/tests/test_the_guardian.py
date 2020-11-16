@@ -2,11 +2,9 @@
 
 # Standard libraries
 import datetime
-import time
 from typing import Any, Dict
 
 # Third party libraries
-import numpy as np
 import pandas as pd
 import pytest
 import requests
@@ -131,96 +129,66 @@ def test_get_latest_opinion_articles_datetime_reached():
     assert actual_metadata == expected_metadata
 
     # Content table
-    expected_content = '2002-02-25T01:53:00Z'
+    expected_content = '1990-11-23T16:47:00Z'
 
     actual_content = article_downloader._get_latest_opinion_articles_datetime_reached(data_type='content')
 
     assert actual_content == expected_content
 
 
-# "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
-@pytest.mark.skip(reason="Changing approach to use database rather than local CSVs")
-def test_record_opinion_articles_content(fs, monkeypatch):
+def test_record_opinion_articles_content():
     """
-    The content of articles are pulled and saved to disk, and the script can pick up from where it last finished.
+    The content of articles that have not already been pulled are collected and and saved to postgres.
     """
 
-    # Create file containing article metadata
-    mock_metadata_file = 'mock_metadata_file.csv'
-    mock_metadata_dict = {
-        'id': ['politics/1990/nov/23/past.conservatives', 'world/2002/feb/25/race.uk'],
-        'type': ['article', 'article'],
-        'sectionId': ['commentisfree', 'commentisfree'],
-        'sectionName': ['Opinion', 'Opinion'],
-        'webPublicationDate': ['1990-11-23T16:47:00Z', '2002-02-25T01:53:00Z'],
-        'webTitle': ['The Thatcher Years | Hugo Young', 'Gary Younge: Terms of abuse'],
-        'webUrl': ['https://www.theguardian.com/politics/1990/nov/23/past.conservatives',
-                   'https://www.theguardian.com/world/2002/feb/25/race.uk'],
-        'apiUrl': ['https://content.guardianapis.com/politics/1990/nov/23/past.conservatives',
-                   'https://content.guardianapis.com/world/2002/feb/25/race.uk'],
-        'isHosted': ['FALSE', 'FALSE'],
-        'pillarId': ['pillar/opinion', 'pillar/opinion'],
-        'pillarName': ['Opinion', 'Opinion'],
-    }
-
-    mock_metadata_df = pd.DataFrame(data=mock_metadata_dict)
-    mock_metadata_df.to_csv(mock_metadata_file)
-
-    # Avoid calling API or using time.sleep in test
-    def mock_article_content_call(article_api_url: str) -> str:
-        """Mock functionality of class method which extracts content of articles."""
-
-        return "Some article content."
-
-    mock_article_contents_file = 'contents_file.csv'
-
-    article_downloader = the_guardian.ArticleDownloader(
-        metadata_file=mock_metadata_file,
-        article_contents_file=mock_article_contents_file
-    )
-    monkeypatch.setattr(article_downloader, "_get_article_content", mock_article_content_call)
-    monkeypatch.setattr(time, 'sleep', lambda s: None)
-
-    ######################################################################
-    # Scenario 1: No article contents have already been extracted
-    ######################################################################
+    article_downloader = the_guardian.ArticleDownloader()
 
     article_downloader.record_opinion_articles_content(number_of_articles=1)
 
     # Expected data should have been processed from most recent publication backwards
-    expected_article_contents_first_time = pd.DataFrame(
+    expected_content = pd.DataFrame(
         data={
-            'id': ['world/2002/feb/25/race.uk', 'politics/1990/nov/23/past.conservatives'],
-            'webPublicationDate': ['2002-02-25T01:53:00Z', '1990-11-23T16:47:00Z'],
-            'apiUrl': ['https://content.guardianapis.com/world/2002/feb/25/race.uk',
-                       'https://content.guardianapis.com/politics/1990/nov/23/past.conservatives'],
-            'content': ['Some article content.', np.nan]
+            'id': ['e8c5e312fae36c43d965a0e3da84e68d', '052015a6d57893adfa4be70521b1ad3b'],
+            'guardian_id': ['politics/1990/nov/23/past.conservatives', 'world/2002/feb/25/race.uk'],
+            'web_publication_timestamp': [datetime.datetime(1990, 11, 23, 16, 47, 0, 0),
+                                          datetime.datetime(2002, 2, 25, 1, 53, 0, 0)],
+            'api_url': ['https://content.guardianapis.com/politics/1990/nov/23/past.conservatives',
+                        'https://content.guardianapis.com/world/2002/feb/25/race.uk'],
+            # Include the first 89 characters of data we already have, and what we expect to see from the next article
+            'content': ["• Margaret Thatcher, Britain's first female prime minister, resigned on 22 November 1990.",
+                        "About every three months I am accused of being an anti-semite. It is not difficult to pre"]
         }
     )
 
-    actual_article_contents_first_time = pd.read_csv(mock_article_contents_file)
+    db_connection = postgresql.DatabaseConnection()
 
-    pd.testing.assert_frame_equal(actual_article_contents_first_time, expected_article_contents_first_time)
+    # Retrieve the table to see if it was populated correctly
+    db_connection._create_connection()
+    with db_connection._conn.cursor() as curs:
+        curs.execute('SELECT * FROM the_guardian.article_content;')
 
-    ######################################################################
-    # Scenario 2: Some of the articles have already been extracted
-    ######################################################################
+        table_tuples = curs.fetchall()
+        actual_content = pd.DataFrame(
+            table_tuples,
+            columns=['id', 'guardian_id', 'web_publication_timestamp', 'api_url', 'content']
+        )
 
-    # The content for the second article should now be available
-    expected_article_contents_second_time = pd.DataFrame(
-        data={
-            'id': ['world/2002/feb/25/race.uk', 'politics/1990/nov/23/past.conservatives'],
-            'webPublicationDate': ['2002-02-25T01:53:00Z', '1990-11-23T16:47:00Z'],
-            'apiUrl': ['https://content.guardianapis.com/world/2002/feb/25/race.uk',
-                       'https://content.guardianapis.com/politics/1990/nov/23/past.conservatives'],
-            'content': ['Some article content.', 'Some article content.']
-        }
-    )
+        # The content of articles are naturally a very large string, so only take the first characters to compare
+        # against
+        actual_content['content'] = actual_content['content'].apply(lambda x: x[:89])
 
-    article_downloader.record_opinion_articles_content(number_of_articles=1)
-    actual_article_contents_second_time = pd.read_csv(mock_article_contents_file)
+        # Tidy up and delete newly inserted rows
+        curs.execute(
+            """
+            DELETE FROM the_guardian.article_content
+            WHERE id = '052015a6d57893adfa4be70521b1ad3b';
+            """
+        )
 
-    pd.testing.assert_frame_equal(actual_article_contents_second_time, expected_article_contents_second_time)
+        db_connection._conn.commit()
+    db_connection._close_connection()
+
+    pd.testing.assert_frame_equal(actual_content, expected_content)
 
 
 def test_record_opinion_articles_metadata(monkeypatch):

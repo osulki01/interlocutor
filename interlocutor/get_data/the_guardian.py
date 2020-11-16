@@ -139,11 +139,11 @@ class ArticleDownloader:
 
     def record_opinion_articles_content(self, number_of_articles: int = 100) -> None:
         """
-        Save a dataframe to disk storing the content of of articles appearing in The Guardian Opinion section
+        Save a dataframe to postgres storing the content of of articles appearing in The Guardian Opinion section
         (https://www.theguardian.com/uk/commentisfree).
 
-        Storing all of the text can be expensive so iterate through a specified number of articles, working from the
-        most recently published articles backwards.
+        Storing all of the text can be expensive so iterate through a specified number of articles, working backwards
+        from the most recently published articles that have not yet had their content pulled.
 
         Dataframe contains one row per article in The Guardian Opinion section that has already been crawled to extract
         its metadata.
@@ -154,72 +154,69 @@ class ArticleDownloader:
             Number of articles to iterate through and extract their contents.
         """
 
-        if os.path.isfile(self._article_contents_file):
-            articles_to_crawl = pd.read_csv(filepath_or_buffer=self._article_contents_file)
+        # Retrieve the articles which have already not yet had their contents pulled
+        sql_query = """
+                    SELECT id, guardian_id, web_publication_timestamp, api_url
+                    FROM the_guardian.article_metadata
+                    WHERE id NOT IN (SELECT id FROM the_guardian.article_content)
+                    ORDER BY web_publication_timestamp DESC
+                    LIMIT %(number_of_articles)s
+                    """
 
-            # Duplicate articles may appear from originally the metadata caller as it picks up from the latest
-            # article data already retrieved each time it retries
-            articles_to_crawl.drop_duplicates(subset='id', inplace=True)
-            articles_to_crawl.set_index('id', inplace=True)
+        articles_to_crawl = self._db_connection.get_dataframe(
+            query=sql_query,
+            query_params={'number_of_articles': number_of_articles}
+        )
 
-        else:
-            articles_to_crawl = pd.read_csv(
-                filepath_or_buffer=self._metadata_file,
-                usecols=['id', 'apiUrl', 'webPublicationDate'],
-                index_col='id'
-            )
-
-            articles_to_crawl['content'] = np.nan
-            articles_to_crawl.sort_values(by='webPublicationDate', ascending=False, inplace=True)
-
-        next_article_to_pull_index = np.argmax(articles_to_crawl['content'].isna())
-        remaining_articles = articles_to_crawl.index[
-                             next_article_to_pull_index:(next_article_to_pull_index + number_of_articles)
-                             ]
+        article_urls = articles_to_crawl['api_url'].values
 
         counter = 0
+        articles_to_crawl['content'] = np.nan
 
-        for article_id in tqdm.tqdm(
+        for article_url in tqdm.tqdm(
                 desc='Article content retrieved',
-                iterable=remaining_articles,
-                total=len(remaining_articles),
+                iterable=article_urls,
+                total=len(article_urls),
                 unit=' article'
         ):
 
-            article_api_url = articles_to_crawl.loc[article_id, 'apiUrl']
-
             try:
-                article_content = self._get_article_content(article_api_url)
-                articles_to_crawl.loc[article_id, 'content'] = article_content
+                article_content = self._get_article_content(article_url)
+                articles_to_crawl.iloc[counter, -1] = article_content
 
                 counter += 1
 
             except requests.exceptions.RequestException as request_exception:
-                print(f'Error retrieving contents for article {article_api_url}')
-                print(f'Exception: {request_exception}')
-                print(f'\nSaving article content already pulled to {self._article_contents_file}')
+                print(f'Error retrieving contents for article {article_url}')
+                print('\nSaving article content already pulled to the_guardian.article_content')
 
-                articles_to_crawl.to_csv(self._article_contents_file)
+                self._db_connection.upload_new_data_only_to_existing_table(
+                    dataframe=articles_to_crawl.dropna(),
+                    table_name='article_content',
+                    schema='the_guardian',
+                    id_column='id'
+                )
+
                 raise request_exception
 
             # Be polite, do not bombard API with too many requests at once
             time.sleep(0.5)
 
-            if counter % 50 == 0:
+        print('\nSaving article content to the_guardian.article_content')
 
-                print(f'Checkpoint, article {counter} reached.')
-                print(f'\nSaving article content already pulled to {self._article_contents_file}')
-                articles_to_crawl.to_csv(self._article_contents_file)
-
-        print(f'\nSaving article content to {self._article_contents_file}')
-        articles_to_crawl.to_csv(self._article_contents_file)
+        self._db_connection.upload_new_data_only_to_existing_table(
+            dataframe=articles_to_crawl.dropna(),
+            table_name='article_content',
+            schema='the_guardian',
+            id_column='id'
+        )
 
     # The Guardian API only allows you to progress through a certain number of pages, so retry and pick up from latest
     # article reached if the method hits an HTTP error.
     @commons.retry(total_attempts=5, exceptions_to_check=requests.exceptions.HTTPError)
     def record_opinion_articles_metadata(self) -> None:
         """
-        Save a dataframe to disk storing all of articles appearing in The Guardian Opinion section
+        Save a dataframe to postgres storing all articles appearing in The Guardian Opinion section
         (https://www.theguardian.com/uk/commentisfree) and how they can be accessed via the API.
 
         Dataframe contains one row per article in The Guardian Opinion section detailing metadata about the article.
