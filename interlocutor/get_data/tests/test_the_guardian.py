@@ -333,11 +333,18 @@ def test_record_opinion_articles_metadata(monkeypatch):
 
     db_connection = postgresql.DatabaseConnection()
 
-    actual_metadata = db_connection.get_dataframe(table_name='article_metadata', schema='the_guardian')
-
-    # Tidy up and delete newly inserted rows
+    # Retrieve the table to see if it was populated correctly
     db_connection._create_connection()
     with db_connection._conn.cursor() as curs:
+        curs.execute('SELECT * FROM the_guardian.article_metadata;')
+
+        table_tuples = curs.fetchall()
+        actual_metadata = pd.DataFrame(
+            table_tuples,
+            columns=['id', 'guardian_id', 'content_type', 'section_id', 'section_name', 'web_publication_timestamp',
+                     'web_title', 'web_url', 'api_url', 'pillar_id', 'pillar_name'])
+
+        # Tidy up and delete newly inserted rows
         curs.execute(
             """
             DELETE FROM the_guardian.article_metadata
