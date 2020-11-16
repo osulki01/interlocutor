@@ -26,12 +26,13 @@ class DatabaseConnection:
             Name of the database to connect to.
         """
 
+        self._database = database
+        self._password = os.getenv('POSTGRES_PASSWORD')
+        self._postgres_port = 5432
+        self._username = os.getenv('POSTGRES_USER')
+
         # Ensure dev environment only connects to staging as no 'dev' database exists
         environment = 'stg' if os.getenv('DEPLOYMENT_ENVIRONMENT') == 'dev' else os.getenv('DEPLOYMENT_ENVIRONMENT')
-
-        self._database = database
-        self._username = os.getenv('POSTGRES_USER')
-        self._password = os.getenv('POSTGRES_PASSWORD')
 
         # Retrieve the name of the database container within the deployment environment
         parent_directory = os.path.dirname(os.path.abspath(__file__))
@@ -39,7 +40,10 @@ class DatabaseConnection:
         docker_compose_config = commons.load_docker_compose_config(f"{project_root}/docker-compose.yml")
 
         self._db_container_name = docker_compose_config['services'][f'db_{environment}']['container_name']
-        self._postgres_port = 5432
+
+        # Class attributes which are set outside of initialisation
+        self._conn = None
+        self._engine = None
 
     def _create_connection(self) -> None:
         """Establish connection to postgres database running on container."""

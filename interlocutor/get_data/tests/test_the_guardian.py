@@ -2,6 +2,7 @@
 
 # Standard libraries
 import datetime
+import time
 from typing import Any, Dict
 
 # Third party libraries
@@ -9,7 +10,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import requests
-import time
 
 # Internal imports
 from interlocutor.get_data import the_guardian

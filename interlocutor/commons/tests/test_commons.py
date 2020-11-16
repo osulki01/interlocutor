@@ -2,12 +2,12 @@
 
 # Standard libraries
 import os
+import subprocess
 
 # Third party libraries
 import pandas as pd
 import pytest
 import requests
-import subprocess
 
 # Internal imports
 from interlocutor.commons import commons
@@ -91,6 +91,7 @@ def succeed_on_third_request_attempt(retry_tracker: RetryTracker) -> None:
 
 
 class TestRetry:
+    """Collection of tests to ensure the retry decorator is working as expected."""
 
     @pytest.mark.parametrize(
         argnames='attempts_requested,successful_call_achieved,total_attempts_made,exceptions_raised',
