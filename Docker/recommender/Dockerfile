@@ -8,10 +8,14 @@ RUN ["echo", "%sudo ALL=(ALL) NOPASSWD:ALL", ">>", "/etc/sudoers"]
 USER $username
 
 # Ensure current host directory containing python requirements is available and create virtual environment
-WORKDIR /usr/src/app
+ARG working_directory=/usr/src/app
+WORKDIR $working_directory
 COPY . .
 ARG DEPLOYMENT_ENVIRONMENT
 RUN pip install --user --requirement python_requirements/${DEPLOYMENT_ENVIRONMENT}_requirements.txt
+
+# Ensure the local namespace python packages can be imported and used from anywhere
+ENV PYTHONPATH="${PYTHONPATH}:${working_directory}"
 
 # Keep container running in detached mode, so execute a meaningless command in the foreground
 CMD ["tail", "-f", "/dev/null"]
