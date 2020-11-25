@@ -214,20 +214,31 @@ class ArticleDownloader:
     # The Guardian API only allows you to progress through a certain number of pages, so retry and pick up from latest
     # article reached if the method hits an HTTP error.
     @commons.retry(total_attempts=5, exceptions_to_check=requests.exceptions.HTTPError)
-    def record_opinion_articles_metadata(self) -> None:
+    def record_opinion_articles_metadata(self, publication_start_timestamp: str = None) -> None:
         """
         Save a dataframe to postgres storing all articles appearing in The Guardian Opinion section
         (https://www.theguardian.com/uk/commentisfree) and how they can be accessed via the API.
 
         Dataframe contains one row per article in The Guardian Opinion section detailing metadata about the article.
+
+        Parameters
+        ----------
+        publication_start_timestamp : str (default None)
+            How far back in time to crawl article metadata, which should be in a timestamp format that the Guardian API
+            expects e.g. '2002-02-25T01:53:00Z'. If not provided, the most recent article that has already been pulled
+            is used as the starting point.
         """
 
         # Only a certain number of articles can be pulled with each call (max 200 articles), so calculate how many
         # pages have to be called to cover all articles
         page_size = 200
 
-        most_recent_datetime = self._get_latest_opinion_articles_datetime_reached(data_type='metadata')
+        if publication_start_timestamp:
+            most_recent_datetime = publication_start_timestamp
+        else:
+            most_recent_datetime = self._get_latest_opinion_articles_datetime_reached(data_type='metadata')
 
+        # Display helpful statement if user has provided a starting point or it could be found from existing data
         if most_recent_datetime:
             print(f'Articles published on or after {most_recent_datetime} will be processed.')
 
@@ -322,9 +333,24 @@ class ArticleDownloader:
             hashlib.md5(val.encode('utf-8')).hexdigest() for val in all_opinion_articles['guardian_id']
         ]
 
+        # Ensure no duplicates exist
+        all_opinion_articles.drop_duplicates(subset='id', inplace=True)
+
         self._db_connection.upload_new_data_only_to_existing_table(
             dataframe=all_opinion_articles,
             table_name='article_metadata',
             schema='the_guardian',
             id_column='id'
         )
+
+
+if __name__ == '__main__':
+
+    print('Initialising class for downloading article metadata and content')
+    article_downloader = ArticleDownloader()
+
+    print('Retrieving metadata')
+    article_downloader.record_opinion_articles_metadata(publication_start_timestamp='2020-01-01T00:00:00Z')
+
+    print('Retrieving article content')
+    article_downloader.record_opinion_articles_content(number_of_articles=10)
