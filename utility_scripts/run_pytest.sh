@@ -1,1 +1,1 @@
-docker exec recommender_dev /home/docker_user/.local/bin/pytest interlocutor/
+docker exec recommender_stg /home/docker_user/.local/bin/pytest interlocutor/
