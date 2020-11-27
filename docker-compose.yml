@@ -24,6 +24,8 @@ services:
         - DEPLOYMENT_ENVIRONMENT=stg
       context: Docker/recommender
     container_name: recommender_stg
+    depends_on:
+      - db_stg
     env_file:
       - Docker/environment_variables/.env.stg
     environment:
@@ -38,6 +40,8 @@ services:
         - DEPLOYMENT_ENVIRONMENT=prd
       context: Docker/recommender
     container_name: recommender_prd
+    depends_on:
+      - db_prd
     env_file:
       - Docker/environment_variables/.env.prd
     environment:
@@ -59,8 +63,6 @@ services:
       - DEPLOYMENT_ENVIRONMENT=stg
     ports:
       - "5431:5432"
-    stdin_open: true
-    tty: true
     volumes:
       - ./Docker/db/staging_data:/staging_data
 

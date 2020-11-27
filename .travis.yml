@@ -6,12 +6,11 @@ services:
 env:
   global:
     - DOCKER_COMPOSE_VERSION=1.27.4
-    - secure: Doz2W7xKSxxtVdbC7dCUMzOviViY8Moe5ONbtPOqjjpaABr4XphboQVUywhIRCMRD6L7WjJ2RS/NkZ0EVKg3VGOHXins4yEskmoCdiG/gcqDVLcyPjxFDYBekcYOfbWVB3dabwRfLQ5M0C8aBLkIx6fC9DKYZ72F0T4aDx1olwxSFpekyrErC/Sqpp0Jj9UEG+0eKc2U6hJSSSn9JL0WQHNb42eu4uodnQmuhRTDIYCqhAbHazj7H/bbrTT6Nv+mSSRCdxejI+Ni0DaFjKu7RIU1YwFHHFL0kdZpE0Jo7yLDf9Pgj53eNsGYLFOkairBHdK7H4k0iSmgqbIzPDSBvrhJZKKtFTRW5Sf5XR0eH2th+zy4zdEH8D254xGqYCdRfq87OpnsTmY5S2/M3z3sSlTUE/17ynB0BU3znsXq0b23UpDIoLNCuYtuiaeuUnnjo0zkqYNkrezY8tQssqbXr1v1+8YlCDufrcsQmBuaXDRcZ4wOzE9J51kmYmv5Kf6RkaymG7F2pTDynEQYnhsWiNXmrKSOPG2GsoDY04J0O+T/6KIaRs6KMNGzYM+iV15iacMkqg4EkW7R3bdVkdLSjNWF2pExzKoDMleAN4TxavSGISPv6AR7+6uYE8uiiflpR2I97TD/mfzPcl87pPWFsmzeDqHuBppsg/XEfoUr6hs=
-    - secure: Zbu3lBbnIIFULSIs8wMwh2MCbcpALuinR/3XH+2T9Q89JmHyPkrud0qv9EICYK5gX3ssKPaVX/vdDggXN9Qu9unf2qWHdZEBqISjhfmJ+f+U0T9IHBbo2jCndNNWNBA0LxHrj6Lr5G4k+2XzPeEMa4g1E8hy2cuDtDo1QYIKFckkrZxJ3hintDnfwA4SPQnBVWi8e6B9Qx72DmmCm7+vulN167Nh+gRPTRPnAViFPxuRKcq2eCApYPcvlB0cMCfYra+/zf4DGZ1LwebPhPZNeIIB2gweEG8hF2PnapvybNan77aY5u+NN+eBtSYOyRqWZlvr3UClhCORzuMct1EPGh9pCNq1MRazYgMK6U4KnBj0zrxT9WmIy0tiI1RYbnxRHKpR5O27x+I0u+AO9fuVC0KxpC8dTnbhPw4ciYJ3Uj7D3wWGnro40Z6MFUbz1WeJ/4tz5DC7oHX2HJ7om/TR0QBaqdYwtU75O6+QfSv1QlP+ZKD0glNMSgfuCZhysWK0S0tYk/Dr6GVs3f09N8ktJ/7GUaa0IEfn8t7y1TP/KmUqSyXOCW0vsxNrz4UsFELcD3jKUdRl7kMB1ccqkA9srKGG0cvIAuIReVsRl++oGNvMZP1kpQ+WtoQN7CaNnZm1aHqVWOgYQiwZkp/EQtAF/aQePaHiWfFL5AJ1JxKiM/Y=
-    - secure: d9MIkgfspX0olEU6bw4ZwTVdeqGjGrDuSbLs0ocJ5ivKFjEScIFbSIYb/x59JTQjIY34JX6lhAfUFykFh+520gFLQ0gppv7ZIWwYOH0dreJewE1EzmrOabmtOdole9A6XjQ6Ea4rnVh6lFbOjtb6q0oVns4pH5C8xAEEd3lE6ax/fpWdmQOQODof1wjD+uZImnSqDRCQBS1jGuLzJl3CpdUWFfFB6F+8KMxwFoXAXRIt3TrMAmIgi4xZHk4NihRqTB1CgyU2eNqEacLw8hvWEKq0sGvDzh2h90uuZXSYlgqpDTY05fInwShRSDssYJgqjQTwrYowtm0/XprMKogDMlWRY25phHkSL8ANsG3SKQRT5i28Zak+iC53fiRXbksY7+bzVg4PaMAkvxLmPxApwNlvxyPesVBSqoHq5driCuGX7O6nx2jn3SQIE6fxc5iawmpdXUzDEd+AHqhiuIUqL1EbZYQGCQ0GOA2E4P3JdMnvhpCxwiZ5bnJby6ev4x6qIZS2bCVlIQXJriPnm1LjI2tuRn7hEEo+uxSLDFlNIm1hkLb39SLtjFKx8rwT7ovXXhBE9C7rxNy51IRZ4rMmnb07iEAQEpngfZfvKGiarWrn1g22+9Et2ZkkEEAs4zxbPKCIXClCzol44pCFvAqNkHMpT9573LGIhMfOdj8PEiI=
 
 before_install:
-#  - openssl aes-256-cbc -K $encrypted_d8dd05b24267_key -iv $encrypted_d8dd05b24267_iv -in .env.stg.enc -out Docker/environment_variables/.env.stg -d
+  # Decrypt secrets
+  - openssl aes-256-cbc -K $encrypted_d8dd05b24267_key -iv $encrypted_d8dd05b24267_iv -in Docker/environment_variables/.env.stg.enc -out Docker/environment_variables/.env.stg -d
+  - openssl aes-256-cbc -K $encrypted_2a80fab840e1_key -iv $encrypted_2a80fab840e1_iv -in Docker/environment_variables/.env.prd.enc -out Docker/environment_variables/.env.prd -d
   # Use same version of docker-compose as local machine
   - sudo rm /usr/local/bin/docker-compose
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
