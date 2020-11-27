@@ -3,12 +3,15 @@ version: "3.8"
 services:
   dev:
     build:
+      # Deployment environment is needed at point of building image and when running container
       args:
         - DEPLOYMENT_ENVIRONMENT=dev
       context: ./Docker/recommender
     container_name: recommender_dev
     env_file:
       - Docker/environment_variables/.env.dev
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=dev
     ports:
       - "8888:8888"
     volumes:
@@ -16,28 +19,35 @@ services:
 
   stg:
     build:
+      # Deployment environment is needed at point of building image and when running container
       args:
         - DEPLOYMENT_ENVIRONMENT=stg
       context: Docker/recommender
     container_name: recommender_stg
     env_file:
       - Docker/environment_variables/.env.stg
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=stg
     volumes:
       - ./:/usr/src/app
 
   prd:
     build:
+      # Deployment environment is needed at point of building image and when running container
       args:
         - DEPLOYMENT_ENVIRONMENT=prd
       context: Docker/recommender
     container_name: recommender_prd
     env_file:
       - Docker/environment_variables/.env.prd
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=prd
     volumes:
       - ./:/usr/src/app
 
   db_stg:
     build:
+      # Deployment environment is needed at point of building image and when running container
       args:
         - DEPLOYMENT_ENVIRONMENT=stg
       context: Docker
@@ -45,6 +55,8 @@ services:
     container_name: db_stg
     env_file:
       - Docker/environment_variables/.env.stg
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=stg
     ports:
       - "5431:5432"
     volumes:
@@ -52,6 +64,7 @@ services:
 
   db_prd:
     build:
+      # Deployment environment is needed at point of building image and when running container
       args:
         - DEPLOYMENT_ENVIRONMENT=prd
       context: Docker
@@ -59,6 +72,8 @@ services:
     container_name: db_prd
     env_file:
       - Docker/environment_variables/.env.prd
+    environment:
+      - DEPLOYMENT_ENVIRONMENT=prd
     ports:
       - "5432:5432"
     volumes:

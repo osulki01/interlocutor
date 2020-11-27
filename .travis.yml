@@ -1,0 +1,30 @@
+language: python
+
+services:
+  - docker
+
+env:
+  global:
+    - DOCKER_COMPOSE_VERSION=1.4.2
+    - secure: VezrxoQuaSJkqvHHh7XpKCGwEgaa1jyuwYB7CHR2czq5VBPNvr8qkuZ7pL0A0ZdnXq4otSKIsZxIxNQ9enawRFl961sShXJSrJL0Koob+UqUIBbVgqOyDycPDH/5/skpW+20cRWeGZhAFsrtdaGDyimgkNz4c2iNC+mLQ38jYGEaJONUZfw/eu0BlezxPATcN/bCbVKR6aokElUJv5e3cTzdJUhYw9yHS0bxJWevQc6r0LU1DqKQnijZJUYqeXHiTYPhSIOeff3gaE9GQtVMOuYuGFf0M4mgZbUmTuoXHbtfjtmYyip7J6lH2BvKWjtVwd7gJ0o2XixoW0U3Hb9wA/d6sQdv9BzNjmDYdeNBeoXFUX4365hx3q2vIGNWYmi1Edeo4vJzIzuAXXfe4vjK549uak2n3YLm+bk5ykZ898sY+l8Sl1mDlUb6dDwlk2w/v3IBfMkpz9yR6lHgjWr3N6LfTDM59ZaoX7M2+F1780o96oXNmD6iwCCI092eJI5o/PeaMDExcP2SNLdslzdKKpil2x56pCYYGTrMNm3Gu7+tYmfgcu4rfb3HKF6pAKjS7SfCUHxMccp+g9KHwJxrdKte6O6t7WQinZo9FIa8k3hqvxMTrErBS+ray7COgUdEyhELfkKPi37342zOYPOR0NPKExQMe1m4NrfV0f1oij0=
+    - secure: JgetUZBjow7kYF4M1wzGGkBxZ9mBjFVxRJGJA8N4VcXec5p53kyA2uw+cHXZsMrXz1ByvJuF4p7n7H/0uUK0MmCvd8lq5c03h0ppV43U9bLwL9jFAXJilmYPI7uXYqxrC8nWabizYIH5Yh7cH2s8UOMLs34Po1hMJS8GrhzFRYas+PDVX2Ievr21+Upt0jjr4k2Y+c/pfHBjQMxbF4Ke/c2KTbqf+5TjUztKY4JpSc+BezzCCfTNAWjoBnEfzQ19BeGY8bNgpv2XHPo3uyAP6XvA4Il5ABQ2eZIDyTYnk6VJ5Wf34f4glVFejKaJNo+POFl2v0qmGSoVr5Fe17+DuQyCzgaKRZtThzfjHo2EBPuFYmBhPiMjgmnL6mpCIS2Vq+m2NpoJtzgMfC8THmqmWNTJPbt9gRlZ0Pu758zItyTv+XJI+/fJ0qyi4UkHDr39cItBMe13G5PcSOXN2IAopauFToMSwTfWuEFEuTicw22hO3ynNdv26vmosnk+y1Ad4LSZXxh9lpoeROzlLPXsTYBEgBI0U9Kv8ezdPMqXb6G5Ernk8u23SdIaWqvzPLOrve/Qv/VOLviXuS8qQxN5IG1/za5YSwJ/iK0GEcZiI1RvK95xoAQu8kpBLpg06LWpdfngnoj5rAy4SQu3plLIEqZjkvxWJb0nnhgzcDkVe9M=
+    - secure: mhX84Q0I9UyQ3aQMWqAbz7qGZqqUy4HTjzka2/xlbpSrEvT5fk89lBfDAa8mw7C1arUY350tpSgGjearWzJMu0YgeqlsMnCQ6Yqjz1gsyNll9acQjH0jK3C2b6vGKIkorWCwZLwQA8NQrP6AM0+2qSf0eUYurk+Exi/LFkX8bS8Z/enguRgLKeOf8WxBnGfwbJja7cugsEIEUm2bdZV5V69DhgtAyYxYu/wYjOC1PrkKA+TLfs8htzb31yKBDaqh0zcYujnFLTkFgiur85SF6wZxg79OO8OcHDyJOptWL5J4RLSPFWLo7pMMtpTuADsr1Ovbgtcw8hV/XtNtYQSUbPMIQRFjvGYXCjkf6p0X6KEHNSYC/T8lXxlEJpHi1Z/gSIjjUSRftRhO/eOIoPuqmKGTWDjMRE4gUk2T4Z1NyrRRtjBf56i2QB/MD44sbjy0CNWI/yOZaHZz9W646EthBiGGd+7SFAJs2Ny+sBwsYjln/Jy90UQ+yvBzNWtKFdDfCvgOOpl3IryWwXi2SZdK9XQnR7vvUuk47HY7mIl1RiTnFdoyyzsPga1e7yeL+t86Yuc3BP4ET/gtH3IY36WONHXnjBKJE/NGb17FWnsJ1mb8CmG+orcRDHm+Chzgb3l5LfaHZZucv4/AI9hHpVGlzIJM8jOx0SegpwSvlU3BCzc=
+
+before_install:
+  # Use same version of docker-compose as local machine
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname-s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+  - docker-compose --version
+  # Set up services
+  - docker-compose build
+  - docker-compose up -d
+  - docker ps
+
+script:
+  # Run tests on staging
+  - docker exec recommender_stg /home/docker_user/.local/bin/pytest interlocutor/
+
+after_script:
+  - docker-compose down
