@@ -9,6 +9,7 @@ env:
 
 before_install:
   # Decrypt secrets
+  - openssl aes-256-cbc -K $encrypted_f494fd7913f1_key -iv $encrypted_f494fd7913f1_iv -in  Docker/environment_variables/.env.dev.enc -out Docker/environment_variables/.env.dev -d
   - openssl aes-256-cbc -K $encrypted_d8dd05b24267_key -iv $encrypted_d8dd05b24267_iv -in Docker/environment_variables/.env.stg.enc -out Docker/environment_variables/.env.stg -d
   - openssl aes-256-cbc -K $encrypted_2a80fab840e1_key -iv $encrypted_2a80fab840e1_iv -in Docker/environment_variables/.env.prd.enc -out Docker/environment_variables/.env.prd -d
   # Use same version of docker-compose as local machine
