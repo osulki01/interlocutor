@@ -59,6 +59,8 @@ services:
       - DEPLOYMENT_ENVIRONMENT=stg
     ports:
       - "5431:5432"
+    stdin_open: true
+    tty: true
     volumes:
       - ./Docker/db/staging_data:/staging_data
 
