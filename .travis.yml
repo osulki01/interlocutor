@@ -1,3 +1,5 @@
+language: generic
+
 services:
   - docker
 
@@ -15,9 +17,9 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
   - docker-compose --version
-  # Set up services
-  - docker-compose build
-  - docker-compose up -d
+  # Set up services (ignore dev as it is not required for testing)
+  - docker-compose build stg db_stg
+  - docker-compose up -d stg db_stg
   - docker-compose start db_stg
   - docker ps
 
