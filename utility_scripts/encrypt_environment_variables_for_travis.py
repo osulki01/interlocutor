@@ -22,7 +22,7 @@ if __name__ == '__main__':
                 variable = line.split('=')[0]
                 secret = line.split('=')[1]
 
-                encrypt_command = ['travis', 'encrypt', f'{variable}={secret}']
+                encrypt_command = ['travis', 'encrypt', '--pro', f'{variable}={secret}']
 
                 try:
                     result = subprocess.run(
