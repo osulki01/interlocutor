@@ -18,6 +18,7 @@ before_install:
   # Set up services
   - docker-compose build
   - docker-compose up -d
+  - docker-compose start db_stg
   - docker ps
 
 script:
