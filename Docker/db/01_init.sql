@@ -3,7 +3,7 @@
 ---------------------------------------------------
 
 CREATE DATABASE interlocutor;
-GRANT ALL PRIVILEGES ON DATABASE interlocutor TO $POSTGRES_USER;
+GRANT ALL PRIVILEGES ON DATABASE interlocutor TO docker_user;
 \connect interlocutor;
 
 
@@ -12,7 +12,7 @@ GRANT ALL PRIVILEGES ON DATABASE interlocutor TO $POSTGRES_USER;
 ---------------------------------------------------
 
 CREATE SCHEMA the_guardian;
-GRANT ALL PRIVILEGES ON SCHEMA the_guardian TO $POSTGRES_USER;
+GRANT ALL PRIVILEGES ON SCHEMA the_guardian TO docker_user;
 
 -- Metadata
 CREATE TABLE the_guardian.article_metadata

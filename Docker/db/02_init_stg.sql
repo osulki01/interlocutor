@@ -6,7 +6,7 @@
 ---------------------------------------------------
 
 CREATE SCHEMA testing_schema;
-GRANT ALL PRIVILEGES ON SCHEMA testing_schema TO $POSTGRES_USER;
+GRANT ALL PRIVILEGES ON SCHEMA testing_schema TO docker_user;
 
 -- Metadata
 CREATE TABLE testing_schema.testing_table
