@@ -11,7 +11,7 @@ env:
     - secure: d9MIkgfspX0olEU6bw4ZwTVdeqGjGrDuSbLs0ocJ5ivKFjEScIFbSIYb/x59JTQjIY34JX6lhAfUFykFh+520gFLQ0gppv7ZIWwYOH0dreJewE1EzmrOabmtOdole9A6XjQ6Ea4rnVh6lFbOjtb6q0oVns4pH5C8xAEEd3lE6ax/fpWdmQOQODof1wjD+uZImnSqDRCQBS1jGuLzJl3CpdUWFfFB6F+8KMxwFoXAXRIt3TrMAmIgi4xZHk4NihRqTB1CgyU2eNqEacLw8hvWEKq0sGvDzh2h90uuZXSYlgqpDTY05fInwShRSDssYJgqjQTwrYowtm0/XprMKogDMlWRY25phHkSL8ANsG3SKQRT5i28Zak+iC53fiRXbksY7+bzVg4PaMAkvxLmPxApwNlvxyPesVBSqoHq5driCuGX7O6nx2jn3SQIE6fxc5iawmpdXUzDEd+AHqhiuIUqL1EbZYQGCQ0GOA2E4P3JdMnvhpCxwiZ5bnJby6ev4x6qIZS2bCVlIQXJriPnm1LjI2tuRn7hEEo+uxSLDFlNIm1hkLb39SLtjFKx8rwT7ovXXhBE9C7rxNy51IRZ4rMmnb07iEAQEpngfZfvKGiarWrn1g22+9Et2ZkkEEAs4zxbPKCIXClCzol44pCFvAqNkHMpT9573LGIhMfOdj8PEiI=
 
 before_install:
-  - openssl aes-256-cbc -K $encrypted_d8dd05b24267_key -iv $encrypted_d8dd05b24267_iv -in .env.stg.enc -out Docker/environment_variables/.env.stg -d
+#  - openssl aes-256-cbc -K $encrypted_d8dd05b24267_key -iv $encrypted_d8dd05b24267_iv -in .env.stg.enc -out Docker/environment_variables/.env.stg -d
   # Use same version of docker-compose as local machine
   - sudo rm /usr/local/bin/docker-compose
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
