@@ -22,6 +22,7 @@ before_install:
   - docker-compose build stg db_stg
   - docker-compose up -d stg db_stg
   - docker-compose start db_stg
+  # Check services are running
   - docker ps -a
   - docker logs db_stg
 
