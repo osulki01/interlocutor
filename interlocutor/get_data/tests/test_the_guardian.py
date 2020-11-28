@@ -25,6 +25,7 @@ def test_call_api_and_display_exceptions_raises_exception():
         article_downloader._call_api_and_display_exceptions(url=url)
 
 
+@pytest.mark.integration
 def test_call_api_and_display_exceptions_makes_successful_call():
     """Calls can be successfully made against API."""
 
@@ -113,6 +114,7 @@ def test_get_article_content(monkeypatch):
     assert actual_article_content == expected_article_content
 
 
+@pytest.mark.integration
 def test_get_latest_opinion_articles_datetime_reached():
     """
     Correct marker of progress made by previous API calls is retrieved by showing the latest publication datetime
@@ -136,6 +138,7 @@ def test_get_latest_opinion_articles_datetime_reached():
     assert actual_content == expected_content
 
 
+@pytest.mark.integration
 def test_record_opinion_articles_content():
     """
     The content of articles that have not already been pulled are collected and and saved to postgres.
@@ -191,6 +194,7 @@ def test_record_opinion_articles_content():
     pd.testing.assert_frame_equal(actual_content, expected_content)
 
 
+@pytest.mark.integration
 def test_record_opinion_articles_metadata(monkeypatch):
     """
     Downloader iterates through pages and saves them to disk.

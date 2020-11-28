@@ -24,11 +24,13 @@ before_install:
   - docker-compose start db_stg
   # Check services are running
   - docker ps -a
-  - docker logs db_stg
 
 script:
   # Run tests on staging
-  - docker exec recommender_stg /home/docker_user/.local/bin/pytest interlocutor/
+  - echo "Unit tests *****************************"
+  - docker exec recommender_stg /home/docker_user/.local/bin/pytest --verbose -m 'not integration' interlocutor/
+  - echo "Integration tests *****************************"
+  - docker exec recommender_stg /home/docker_user/.local/bin/pytest --verbose -m 'integration' interlocutor/
 
 after_script:
   - docker-compose down
