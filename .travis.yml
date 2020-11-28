@@ -9,9 +9,8 @@ env:
 
 before_install:
   # Decrypt secrets
-  - openssl aes-256-cbc -K $encrypted_f494fd7913f1_key -iv $encrypted_f494fd7913f1_iv -in  Docker/environment_variables/.env.dev.enc -out Docker/environment_variables/.env.dev -d
-  - openssl aes-256-cbc -K $encrypted_d8dd05b24267_key -iv $encrypted_d8dd05b24267_iv -in Docker/environment_variables/.env.stg.enc -out Docker/environment_variables/.env.stg -d
-  - openssl aes-256-cbc -K $encrypted_2a80fab840e1_key -iv $encrypted_2a80fab840e1_iv -in Docker/environment_variables/.env.prd.enc -out Docker/environment_variables/.env.prd -d
+  - openssl aes-256-cbc -K $encrypted_b868b2860263_key -iv $encrypted_b868b2860263_iv -in Docker/environment_variables/secrets.tar.enc -out Docker/environment_variables/secrets.tar -d
+  - tar xvf Docker/environment_variables/secrets.tar
   # Use same version of docker-compose as local machine
   - sudo rm /usr/local/bin/docker-compose
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
@@ -21,7 +20,6 @@ before_install:
   # Set up services (ignore dev as it is not required for testing)
   - docker-compose build stg db_stg
   - docker-compose up -d stg db_stg
-  - docker-compose start db_stg
   # Check services are running
   - docker ps -a
 

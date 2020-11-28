@@ -1,8 +1,3 @@
-travis encrypt-file --pro --force Docker/environment_variables/.env.dev
-mv .env.dev.enc Docker/environment_variables/.env.dev.enc
-
-travis encrypt-file --pro --force Docker/environment_variables/.env.stg
-mv .env.stg.enc Docker/environment_variables/.env.stg.enc
-
-travis encrypt-file --pro --force Docker/environment_variables/.env.prd
-mv .env.prd.enc Docker/environment_variables/.env.prd.enc
+tar cvf Docker/environment_variables/secrets.tar Docker/environment_variables/.env.dev Docker/environment_variables/.env.stg Docker/environment_variables/.env.prd
+travis encrypt-file --pro --force Docker/environment_variables/secrets.tar
+mv secrets.tar.enc Docker/environment_variables/secrets.tar.enc
