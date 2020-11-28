@@ -1,21 +1,11 @@
 """Crawl the Daily Mail website and download article metadata/content."""
 
 # Standard libraries
-import hashlib
-import os
-import time
-from typing import Any, Dict, List, Union
+from typing import Dict
 
 # Third party libraries
 from bs4 import BeautifulSoup
-import numpy as np
-import pandas as pd
 import requests
-import tqdm
-
-# Internal imports
-from interlocutor.commons import commons
-from interlocutor.database import postgresql
 
 
 def get_columnist_homepages() -> Dict[str, str]:
@@ -41,6 +31,6 @@ def get_columnist_homepages() -> Dict[str, str]:
 
         for author_page in author_home_pages:
             # Map the name of the author to their home page
-            columnists[author_page.text.title()] = author_page.attrs['href']
+            columnists[author_page.text.title().strip()] = author_page.attrs['href']
 
     return columnists
