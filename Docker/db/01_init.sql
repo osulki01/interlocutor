@@ -63,3 +63,22 @@ COMMENT ON COLUMN the_guardian.article_content.guardian_id IS 'Path to the artic
 COMMENT ON COLUMN the_guardian.article_content.web_publication_timestamp IS 'Combined date and time of publication';
 COMMENT ON COLUMN the_guardian.article_content.api_url IS 'URL of the raw content';
 COMMENT ON COLUMN the_guardian.article_content.content IS 'Text content of the article';
+
+
+---------------------------------------------------
+-- THE DAILY MAIL ARTICLES
+---------------------------------------------------
+
+CREATE SCHEMA daily_mail;
+GRANT ALL PRIVILEGES ON SCHEMA daily_mail TO $POSTGRES_USER;
+
+-- Columnists
+CREATE TABLE daily_mail.columnists
+(
+    columnist VARCHAR PRIMARY KEY,
+    homepage  VARCHAR
+);
+
+COMMENT ON TABLE daily_mail.columnists IS 'Columnist names and their homepage on the website.';
+COMMENT ON COLUMN daily_mail.columnists.columnist IS 'Name of the writer';
+COMMENT ON COLUMN daily_mail.columnists.homepage IS 'URL of the columnist homepage';

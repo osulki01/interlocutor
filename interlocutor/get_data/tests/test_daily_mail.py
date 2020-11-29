@@ -1,9 +1,12 @@
 """Testing crawling the Daily Mail website and download article metadata/content."""
 
 # Third party libraries
+import pandas as pd
+import pytest
 import requests
 
 # Internal imports
+from interlocutor.database import postgresql
 from interlocutor.get_data import daily_mail
 
 
@@ -94,16 +97,66 @@ def test_get_columnist_homepages(monkeypatch):
     """The name of columnists is successfully retrieved alongside their homepage."""
 
     expected_columnists = {
-        'Baz Bamigboye': '/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html',
-        'Craig Brown': '/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html',
-        'Peter Hitchens': '/debate/columnist-224/Peter-Hitchens-The-Mail-Sunday.html',
-        'Liz Jones': '/mailonsunday/columnist-1074669/Liz-Jones-Column-The-Mail-Sunday.html',
+        'Baz Bamigboye': 'https://www.dailymail.co.uk/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html',
+        'Craig Brown': 'https://www.dailymail.co.uk/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html',
+        'Peter Hitchens': 'https://www.dailymail.co.uk/debate/columnist-224/Peter-Hitchens-The-Mail-Sunday.html',
+        'Liz Jones': 'https://www.dailymail.co.uk/mailonsunday/columnist-1074669/Liz-Jones-Column-The-Mail-Sunday.html',
         'Alex Brummer': 'https://brummerblog.dailymail.co.uk/',
         'Chapman & Co': 'https://chapman.dailymail.co.uk/'
     }
 
     monkeypatch.setattr(requests, 'get', mock_columnist_homepage)
 
-    actual_columnists = daily_mail.get_columnist_homepages()
+    article_downloader = daily_mail.ArticleDownloader()
+    actual_columnists = article_downloader._get_columnist_homepages()
 
     assert actual_columnists == expected_columnists
+
+
+@pytest.mark.integration
+def test_record_columnist_home_pages(monkeypatch):
+    """Columnist names and their home page are pulled correctly and stored in postgres."""
+
+    def mock_columnists():
+        return {
+            'Alex Brummer': 'https://www.dailymail.co.uk/news/columnist-1001421/Alex-Brummer-Daily-Mail.html',
+            'Baz Bamigboye': 'https://www.dailymail.co.uk/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html',
+            'Craig Brown': 'https://www.dailymail.co.uk/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html'
+        }
+
+    # Set up downloader but overwrite crawler with mock data
+    article_downloader = daily_mail.ArticleDownloader()
+    monkeypatch.setattr(requests, 'get', mock_columnist_homepage)
+
+    article_downloader.record_columnist_home_pages()
+
+    # Retrieve the table to see if it was populated correctly
+    db_connection = postgresql.DatabaseConnection()
+    db_connection._create_connection()
+
+    with db_connection._conn.cursor() as curs:
+        curs.execute('SELECT * FROM daily_mail.columnists;')
+
+        table_tuples = curs.fetchall()
+        actual_columnists = pd.DataFrame(table_tuples, columns=['columnist', 'homepage'])
+
+        # Tidy up and delete newly inserted rows
+        curs.execute("DELETE FROM daily_mail.columnists WHERE columnist NOT IN ('Baz Bamigboye', 'Craig Brown');")
+
+        db_connection._conn.commit()
+
+    db_connection._close_connection()
+
+    expected_columnists = pd.DataFrame(data={
+        'columnist': ['Baz Bamigboye', 'Craig Brown', 'Peter Hitchens', 'Liz Jones', 'Alex Brummer', 'Chapman & Co'],
+        'homepage': [
+            'https://www.dailymail.co.uk/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html',
+            'https://www.dailymail.co.uk/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html',
+            'https://www.dailymail.co.uk/debate/columnist-224/Peter-Hitchens-The-Mail-Sunday.html',
+            'https://www.dailymail.co.uk/mailonsunday/columnist-1074669/Liz-Jones-Column-The-Mail-Sunday.html',
+            'https://brummerblog.dailymail.co.uk/',
+            'https://chapman.dailymail.co.uk/'
+        ]
+    })
+
+    pd.testing.assert_frame_equal(actual_columnists, expected_columnists)
