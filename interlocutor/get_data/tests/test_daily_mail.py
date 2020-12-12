@@ -1,5 +1,8 @@
 """Testing crawling the Daily Mail website and download article metadata/content."""
 
+# Standard libraries
+import os
+
 # Third party libraries
 import pandas as pd
 import pytest
@@ -15,76 +18,11 @@ class MockColumnistHomepage:
 
     def __init__(self):
         self.status_code = 200
-        self.content = b"""
-        <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-            "//www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-        <html>
-           <head>
-           </head>
-           <body class="tlc-columnists columnistscolumnists mol-desktop aileron-font" id="columnists"
-                itemid="/columnists/index.html" itemscope="" itemtype="//schema.org/CollectionPage">
-              <div class="debate item">
-                 <div class="editors-choice ccox link-ccox linkro-darkred" id="p-6"
-                    data-track-module="llg-1001345^editors_choice">
-                    <h3 class="bdrcc">DAILY MAIL COLUMNISTS </h3>
-                    <ul class="cleared">
-                       <li>
-                          <div class="wocc">&nbsp;</div>
-                                <a class="js-tl" href="/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html">
-                                BAZ BAMIGBOYE</a>
-                       </li>
-                       <li>
-                          <div class="wocc">&nbsp;</div>
-                                <a class="js-tl" href="/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html">
-                                CRAIG BROWN</a>
-                       </li>
-                    </ul>
-                 </div>
-              </div>
-              <script type="text/javascript">    DM.later(\'bundle\', function()
-                {DM.has(\'p-6\', \'externalLinkTracker\');    });</script>
-              <div class="debate item">
-                 <div class="editors-choice ccox link-ccox linkro-darkred" id="p-45"
-                 data-track-module="llg-1001682^editors_choice">
-                    <h3 class="bdrcc">MAIL ON SUNDAY COLUMNISTS </h3>
-                    <ul class="cleared">
-                       <li>
-                          <div class="wocc">&nbsp;</div>
-                                <a class="js-tl" href="/debate/columnist-224/Peter-Hitchens-The-Mail-Sunday.html">
-                                PETER HITCHENS</a>
-                       </li>
-                       <li>
-                          <div class="wocc">&nbsp;</div>
-                                <a class="js-tl"
-                                    href="/mailonsunday/columnist-1074669/Liz-Jones-Column-The-Mail-Sunday.html">
-                                    LIZ JONES</a>
-                       </li>
-                    </ul>
-                 </div>
-              </div>
-              <script type="text/javascript">    DM.later(\'bundle\', function()
-                {DM.has(\'p-45\', \'externalLinkTracker\');    });</script>
-              <div class="debate item">
-                 <div class="editors-choice ccox link-ccox linkro-darkred" id="p-54"
-                    data-track-module="llg-1000543^editors_choice">
-                    <h3 class="bdrcc">RIGHTMINDS BLOGGERS </h3>
-                    <ul class="cleared">
-                       <li>
-                          <div class="wocc">&nbsp;</div>
-                                <a class="js-tl" href="https://brummerblog.dailymail.co.uk/"
-                                rel="nofollow noreferrer noopener" target="_blank">ALEX BRUMMER</a>
-                       </li>
-                       <li>
-                          <div class="wocc">&nbsp;</div>
-                                <a class="js-tl" href="https://chapman.dailymail.co.uk/"
-                                rel="nofollow noreferrer noopener" target="_blank">CHAPMAN & CO</a>
-                       </li>
-                    </ul>
-                 </div>
-              </div>
-           </body>
-        </html>
-        """
+
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+
+        with open(file=f'{script_directory}/mock_daily_mail_columnists_homepage.html', mode='rb') as mock_page:
+            self.content = mock_page.read()
 
 
 def mock_columnist_homepage(url=None):
@@ -99,10 +37,33 @@ def test_get_columnist_homepages(monkeypatch):
     expected_columnists = {
         'Baz Bamigboye': 'https://www.dailymail.co.uk/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html',
         'Craig Brown': 'https://www.dailymail.co.uk/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html',
-        'Peter Hitchens': 'https://www.dailymail.co.uk/debate/columnist-224/Peter-Hitchens-The-Mail-Sunday.html',
-        'Liz Jones': 'https://www.dailymail.co.uk/mailonsunday/columnist-1074669/Liz-Jones-Column-The-Mail-Sunday.html',
         'Alex Brummer': 'https://brummerblog.dailymail.co.uk/',
-        'Chapman & Co': 'https://chapman.dailymail.co.uk/'
+        'Stephen Glover': 'https://www.dailymail.co.uk/news/columnist-244/Stephen-Glover-Daily-Mail.html',
+        'Richard Kay': 'https://www.dailymail.co.uk/news/columnist-230/Richard-Kay-Daily-Mail.html',
+        'Ephraim Hardcastle': 'https://www.dailymail.co.uk/news/columnist-250/Ephraim-Hardcastle-Daily-Mail.html',
+        'Sebastian Shakespeare': 'https://www.dailymail.co.uk/news/columnist-1092116/Sebastian-Shakespeare-Daily-Mail'
+                                 '.html',
+        'Max Hastings': 'https://www.dailymail.co.uk/news/columnist-464/Max-Hastings-Daily-Mail.html',
+        'Dominic Lawson': 'https://www.dailymail.co.uk/columnists/columnist-1083636/Dominic-Lawson-Daily-Mail.html',
+        'Richard Littlejohn': 'https://www.dailymail.co.uk/news/columnist-322/Richard-Littlejohn-Daily-Mail.html',
+        'Peter Mckay': 'https://www.dailymail.co.uk/news/columnist-227/Peter-McKay-Daily-Mail.html',
+        'Jan Moir': 'https://www.dailymail.co.uk/debate/columnist-1012602/Jan-Moir-Daily-Mail.html',
+        'Bel Mooney': 'https://www.dailymail.co.uk/femail/columnist-465/Bel-Mooney-Daily-Mail.html',
+        'Andrew Pierce': 'https://pierceblog.dailymail.co.uk/',
+        'Amanda Platell': 'https://www.dailymail.co.uk/news/columnist-463/Amanda-Platell-The-Daily-Mail.html',
+        'Martin Samuel': 'https://www.dailymail.co.uk/sport/columnist-1020688/Martin-Samuel-Sport-Daily-Mail.html',
+        'Ruth Sunderland': 'https://www.dailymail.co.uk/columnists/columnist-1072434/Ruth-Sunderland-Daily-Mail.html',
+        'Tom Utley': 'https://www.dailymail.co.uk/news/columnist-1000961/Tom-Utley-Daily-Mail.html',
+        'Sarah Vine': 'https://www.dailymail.co.uk/debate/columnist-1082216/Sarah-Vine-Daily-Mail.html',
+        'Peter Hitchens': 'https://hitchensblog.mailonsunday.co.uk/',
+        'Liz Jones': 'https://www.dailymail.co.uk/mailonsunday/columnist-1074669/Liz-Jones-Column-The-Mail-Sunday.html',
+        'Black Dog': 'https://www.dailymail.co.uk/mailonsunday/columnist-249/Black-Dog-The-Mail-Sunday.html',
+        'Oliver Holt': 'https://www.dailymail.co.uk/sport/columnist-1098989/Oliver-Holt-Mail-Sunday.html',
+        'Chapman & Co': 'https://chapman.dailymail.co.uk/',
+        'Steve Doughty': 'https://doughtyblog.dailymail.co.uk/',
+        'Adrian Hilton': 'https://hiltonblog.dailymail.co.uk/',
+        'Mary Ellen Synon': 'https://synonblog.dailymail.co.uk/',
+        'Stephen Wright': 'https://wrightblog.dailymail.co.uk/',
     }
 
     monkeypatch.setattr(requests, 'get', mock_columnist_homepage)
@@ -116,13 +77,6 @@ def test_get_columnist_homepages(monkeypatch):
 @pytest.mark.integration
 def test_record_columnist_home_pages(monkeypatch):
     """Columnist names and their home page are pulled correctly and stored in postgres."""
-
-    def mock_columnists():
-        return {
-            'Alex Brummer': 'https://www.dailymail.co.uk/news/columnist-1001421/Alex-Brummer-Daily-Mail.html',
-            'Baz Bamigboye': 'https://www.dailymail.co.uk/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html',
-            'Craig Brown': 'https://www.dailymail.co.uk/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html'
-        }
 
     # Set up downloader but overwrite crawler with mock data
     article_downloader = daily_mail.ArticleDownloader()
@@ -148,15 +102,38 @@ def test_record_columnist_home_pages(monkeypatch):
     db_connection._close_connection()
 
     expected_columnists = pd.DataFrame(data={
-        'columnist': ['Baz Bamigboye', 'Craig Brown', 'Peter Hitchens', 'Liz Jones', 'Alex Brummer', 'Chapman & Co'],
-        'homepage': [
-            'https://www.dailymail.co.uk/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html',
-            'https://www.dailymail.co.uk/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html',
-            'https://www.dailymail.co.uk/debate/columnist-224/Peter-Hitchens-The-Mail-Sunday.html',
-            'https://www.dailymail.co.uk/mailonsunday/columnist-1074669/Liz-Jones-Column-The-Mail-Sunday.html',
-            'https://brummerblog.dailymail.co.uk/',
-            'https://chapman.dailymail.co.uk/'
-        ]
+        'columnist': ['Baz Bamigboye', 'Craig Brown', 'Alex Brummer', 'Stephen Glover', 'Richard Kay',
+                      'Ephraim Hardcastle', 'Sebastian Shakespeare', 'Max Hastings', 'Dominic Lawson',
+                      'Richard Littlejohn', 'Peter Mckay', 'Jan Moir', 'Bel Mooney', 'Andrew Pierce', 'Amanda Platell',
+                      'Martin Samuel', 'Ruth Sunderland', 'Tom Utley', 'Sarah Vine', 'Peter Hitchens', 'Liz Jones',
+                      'Black Dog', 'Oliver Holt', 'Chapman & Co', 'Steve Doughty', 'Adrian Hilton', 'Mary Ellen Synon',
+                      'Stephen Wright'],
+        'homepage': ['https://www.dailymail.co.uk/tvshowbiz/columnist-1000601/Baz-Bamigboye-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/home/books/columnist-1003951/Craig-Brown-Daily-Mail.html',
+                     'https://brummerblog.dailymail.co.uk/',
+                     'https://www.dailymail.co.uk/news/columnist-244/Stephen-Glover-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/news/columnist-230/Richard-Kay-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/news/columnist-250/Ephraim-Hardcastle-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/news/columnist-1092116/Sebastian-Shakespeare-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/news/columnist-464/Max-Hastings-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/columnists/columnist-1083636/Dominic-Lawson-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/news/columnist-322/Richard-Littlejohn-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/news/columnist-227/Peter-McKay-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/debate/columnist-1012602/Jan-Moir-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/femail/columnist-465/Bel-Mooney-Daily-Mail.html',
+                     'https://pierceblog.dailymail.co.uk/',
+                     'https://www.dailymail.co.uk/news/columnist-463/Amanda-Platell-The-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/sport/columnist-1020688/Martin-Samuel-Sport-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/columnists/columnist-1072434/Ruth-Sunderland-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/news/columnist-1000961/Tom-Utley-Daily-Mail.html',
+                     'https://www.dailymail.co.uk/debate/columnist-1082216/Sarah-Vine-Daily-Mail.html',
+                     'https://hitchensblog.mailonsunday.co.uk/',
+                     'https://www.dailymail.co.uk/mailonsunday/columnist-1074669/Liz-Jones-Column-The-Mail-Sunday.html',
+                     'https://www.dailymail.co.uk/mailonsunday/columnist-249/Black-Dog-The-Mail-Sunday.html',
+                     'https://www.dailymail.co.uk/sport/columnist-1098989/Oliver-Holt-Mail-Sunday.html',
+                     'https://chapman.dailymail.co.uk/', 'https://doughtyblog.dailymail.co.uk/',
+                     'https://hiltonblog.dailymail.co.uk/', 'https://synonblog.dailymail.co.uk/',
+                     'https://wrightblog.dailymail.co.uk/']
     })
 
     pd.testing.assert_frame_equal(actual_columnists, expected_columnists)
