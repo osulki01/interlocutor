@@ -82,3 +82,15 @@ CREATE TABLE daily_mail.columnists
 COMMENT ON TABLE daily_mail.columnists IS 'Columnist names and their homepage on the website.';
 COMMENT ON COLUMN daily_mail.columnists.columnist IS 'Name of the writer';
 COMMENT ON COLUMN daily_mail.columnists.homepage IS 'URL of the columnist homepage';
+
+
+-- Links to recent articles by each columnist
+CREATE TABLE daily_mail.columnist_recent_article_links
+(
+    columnist VARCHAR,
+    url       VARCHAR
+);
+
+COMMENT ON TABLE daily_mail.columnist_recent_article_links IS 'Links to recent articles by columnist.';
+COMMENT ON COLUMN daily_mail.columnist_recent_article_links.columnist IS 'Name of the writer';
+COMMENT ON COLUMN daily_mail.columnist_recent_article_links.url IS 'Link to the article';
