@@ -88,9 +88,26 @@ COMMENT ON COLUMN daily_mail.columnists.homepage IS 'URL of the columnist homepa
 CREATE TABLE daily_mail.columnist_recent_article_links
 (
     columnist VARCHAR,
-    url       VARCHAR
+    url       VARCHAR PRIMARY KEY
 );
 
 COMMENT ON TABLE daily_mail.columnist_recent_article_links IS 'Links to recent articles by columnist.';
 COMMENT ON COLUMN daily_mail.columnist_recent_article_links.columnist IS 'Name of the writer';
 COMMENT ON COLUMN daily_mail.columnist_recent_article_links.url IS 'Link to the article';
+
+
+-- Content for recent articles by each columnist
+CREATE TABLE daily_mail.recent_article_content
+(
+    url     VARCHAR,
+    title   VARCHAR,
+    content VARCHAR,
+    CONSTRAINT fk_id
+      FOREIGN KEY(url)
+	  REFERENCES daily_mail.columnist_recent_article_links(url)
+);
+
+COMMENT ON TABLE daily_mail.recent_article_content IS 'Text content of recent articles by columnists.';
+COMMENT ON COLUMN daily_mail.recent_article_content.url IS 'Link to article';
+COMMENT ON COLUMN daily_mail.recent_article_content.title IS 'Title of article';
+COMMENT ON COLUMN daily_mail.recent_article_content.content IS 'Text content of article';

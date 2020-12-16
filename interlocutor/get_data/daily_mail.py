@@ -1,13 +1,15 @@
 """Crawl the Daily Mail website and download article metadata/content."""
 
 # Standard libraries
-from typing import Dict, List
+import re
+from typing import Dict, List, Tuple
 from urllib import parse
 
 # Third party libraries
 from bs4 import BeautifulSoup
 import pandas as pd
 import requests
+import tqdm
 
 # Internal imports
 from interlocutor.database import postgresql
@@ -23,6 +25,39 @@ class ArticleDownloader:
         self._base_url = 'https://www.dailymail.co.uk'
         self._columnist_section_url = 'https://www.dailymail.co.uk/columnists/index.html'
         self._db_connection = postgresql.DatabaseConnection()
+
+    def _get_article_title_and_content(self, url) -> Tuple[str, str]:
+        """
+
+        Parameters
+        ----------
+        url : str
+            URL of the the Daily Mail article which a get request will be sent to.
+
+        Returns
+        -------
+        tuple
+            Title of article and its text content.
+        """
+
+        article_page = requests.get(url)
+
+        article_soup = BeautifulSoup(markup=article_page.content, features="html.parser")
+
+        # Extract title, which needs parsing as it follows convention '<Author>: <Title> | Daily Mail Online'
+        title = article_soup.find("title").getText()
+        title = title.split(': ')[-1]
+        title = title.replace(' | Daily Mail Online', '').strip()
+
+        # Extract the text content
+        article_body = article_soup.find("div", {"itemprop": "articleBody"})
+        raw_content = article_body.findAll(attrs={'class': 'mol-para-with-font'})
+        processed_content = []
+
+        for line in raw_content:
+            processed_content.append(line.text)
+
+        return title, ' '.join(processed_content)
 
     def _get_columnist_homepages(self) -> Dict[str, str]:
         """
@@ -108,10 +143,42 @@ class ArticleDownloader:
             id_column='columnist'
         )
 
+    def record_columnists_recent_article_content(self) -> None:
+        """
+        For all of the articles in daily_mail.columnist_recent_article_links table, extract the text content of those
+        articles and write to database.
+        """
+
+        # Find articles that have not already been scraped
+        author_and_recent_article_links = self._db_connection.get_dataframe(
+            query="""
+            SELECT * 
+            FROM daily_mail.columnist_recent_article_links 
+            WHERE url NOT IN (SELECT url FROM daily_mail.recent_article_content);
+            """
+        )
+
+        for url in tqdm.tqdm(
+                desc='Daily Mail article content retrieved',
+                iterable=author_and_recent_article_links['url'].values,
+                total=len(author_and_recent_article_links['url'].values),
+                unit=' article'
+        ):
+            title, content = self._get_article_title_and_content(url=url)
+
+            data_for_database = pd.DataFrame(data={'url': [url], 'title': [title], 'content': [content]})
+
+            self._db_connection.upload_new_data_only_to_existing_table(
+                dataframe=data_for_database,
+                table_name='recent_article_content',
+                schema='daily_mail',
+                id_column='url'
+            )
+
     def record_columnists_recent_article_links(self) -> None:
         """
         For all of the columnists in daily_mail.columnists table, extract the links to recent articles published by each
-        columnist and write to database..
+        columnist and write to database.
         """
 
         authors_and_homepage = self._db_connection.get_dataframe(table_name='columnists', schema='daily_mail')
