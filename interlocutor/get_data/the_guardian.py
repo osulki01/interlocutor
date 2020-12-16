@@ -174,7 +174,7 @@ class ArticleDownloader:
         articles_to_crawl['content'] = np.nan
 
         for article_url in tqdm.tqdm(
-                desc='Article content retrieved',
+                desc='Guardian article content retrieved',
                 iterable=article_urls,
                 total=len(article_urls),
                 unit=' article'
