@@ -1,7 +1,7 @@
 """Crawl the Daily Mail website and download article metadata/content."""
 
 # Standard libraries
-import re
+import time
 from typing import Dict, List, Tuple
 from urllib import parse
 
@@ -24,6 +24,7 @@ class ArticleDownloader:
 
         self._base_url = 'https://www.dailymail.co.uk'
         self._columnist_section_url = 'https://www.dailymail.co.uk/columnists/index.html'
+
         self._db_connection = postgresql.DatabaseConnection()
 
     def _get_article_title_and_content(self, url) -> Tuple[str, str]:
@@ -86,7 +87,10 @@ class ArticleDownloader:
                 # Replace relative urls with absolute
                 full_url = parse.urljoin(base=self._base_url, url=url)
 
-                columnists[author_page.text.title().strip()] = full_url
+                # Only save if their homepage contains regularly structured Daily Mail articles rather than RightMinds
+                # blogs (which do not start with the usual base_url)
+                if full_url.startswith(self._base_url):
+                    columnists[author_page.text.title().strip()] = full_url
 
         return columnists
 
@@ -202,9 +206,20 @@ class ArticleDownloader:
                 id_column='url'
             )
 
+            # Be polite, do not bombard API with too many requests at once
+            time.sleep(0.5)
+
 
 if __name__ == '__main__':
 
+    print('Initialising class for downloading article metadata and content from The Daily Mail')
     article_downloader = ArticleDownloader()
 
+    print('Retrieving the names of columnists and their homepages')
+    article_downloader.record_columnist_home_pages()
+
+    print('Retrieving the links to recent articles published by columnists')
     article_downloader.record_columnists_recent_article_links()
+
+    print('Retrieving the text content of recent articles')
+    article_downloader.record_columnists_recent_article_content()
