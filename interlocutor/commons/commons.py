@@ -4,6 +4,7 @@
 import functools
 import os
 import subprocess
+import time
 from typing import Callable, Dict, List, Tuple, Union
 
 # Third party libraries
@@ -30,7 +31,11 @@ def load_docker_compose_config(yaml_filename_path: str = 'docker-compose.yml') -
         return yaml.load(yml_file, Loader=yaml.FullLoader)
 
 
-def retry(total_attempts: int, exceptions_to_check: Union[Exception, Tuple[Exception]]) -> Callable:
+def retry(
+        total_attempts: int,
+        exceptions_to_check: Union[Exception, Tuple[Exception]],
+        seconds_to_wait: int = None
+) -> Callable:
     """
     Execute the decorated function and retry a specified number of times if it encounters an exception.
 
@@ -42,6 +47,9 @@ def retry(total_attempts: int, exceptions_to_check: Union[Exception, Tuple[Excep
 
     exceptions_to_check : Exception, or Tuple of Exceptions
         The types of Exception that mean the decorated function should retry.
+
+    seconds_to_wait : int (default None)
+        How many seconds to wait until trying again.
 
     Returns
     -------
@@ -75,6 +83,10 @@ def retry(total_attempts: int, exceptions_to_check: Union[Exception, Tuple[Excep
                     if attempt_number == total_attempts:
                         print('Max attempts reached. Stopping now.')
                         raise raised_exception
+
+                    if seconds_to_wait:
+                        print(f'Waiting {seconds_to_wait} seconds before trying again')
+                        time.sleep(seconds_to_wait)
 
                     attempt_number += 1
                     print('Retrying now.')
