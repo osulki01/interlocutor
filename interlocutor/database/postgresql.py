@@ -70,7 +70,7 @@ class DatabaseConnection:
         self._conn.close()
         self._engine.dispose()
 
-    @commons.retry(total_attempts=2, exceptions_to_check=psycopg2.OperationalError, seconds_to_wait=10)
+    @commons.retry(total_attempts=3, exceptions_to_check=psycopg2.OperationalError, seconds_to_wait=10)
     def check_database_is_live(self):
         """Execute a simple query against the database to see if it is live."""
 
