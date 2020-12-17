@@ -8,13 +8,35 @@ repository root.
 
 # Standard libraries
 import datetime
+import time
 
 # Third party libraries
 import pandas as pd
+import psycopg2
 import pytest
 
 # Internal imports
 from interlocutor.database import postgresql
+
+
+def test_check_database_is_live(monkeypatch):
+    """Exception is raised if database is not alive and accepting connections after pausing and retrying once more."""
+
+    # SCENARIO 1: Connection succeeds on first attempt
+    db_connection_succeed_first_time = postgresql.DatabaseConnection()
+    assert db_connection_succeed_first_time._initial_database_response_success
+
+    # SCENARIO 2: Connection does not succeed at all
+
+    # Avoid having to wait before retrying
+    def mock_sleep(secs: int = None):
+        """Mock how the sleep function is called but do not actually delay code running."""
+        pass
+
+    monkeypatch.setattr(time, 'sleep', mock_sleep)
+
+    with pytest.raises(psycopg2.OperationalError):
+        db_connection_incorrect_database = postgresql.DatabaseConnection(database='incorrect_database')
 
 
 def test_execute_database_operation():

@@ -44,6 +44,10 @@ class DatabaseConnection:
         # Class attributes which are set outside of initialisation
         self._conn = None
         self._engine = None
+        self._initial_database_response_success = None
+
+        # Make sure database is available
+        self.check_database_is_live()
 
     def _create_connection(self) -> None:
         """Establish connection to postgres database running on container."""
@@ -65,6 +69,20 @@ class DatabaseConnection:
 
         self._conn.close()
         self._engine.dispose()
+
+    @commons.retry(total_attempts=2, exceptions_to_check=psycopg2.OperationalError, seconds_to_wait=10)
+    def check_database_is_live(self):
+        """Execute a simple query against the database to see if it is live."""
+
+        self._create_connection()
+
+        try:
+            with self._conn.cursor() as curs:
+                curs.execute(query='SELECT 1;')
+                self._conn.commit()
+                self._initial_database_response_success = True
+        finally:
+            self._close_connection()
 
     def execute_database_operation(self, sql_command: Union[str, psy_sql.Composable], params: Dict = None) -> None:
         """
