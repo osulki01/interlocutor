@@ -63,6 +63,8 @@ services:
       - DEPLOYMENT_ENVIRONMENT=stg
     ports:
       - "5431:5432"
+    # Staging data is not mapped to /var/lib/postgresql/data because the staging container should be starting afresh
+    # each time and we do not want it to see any existing data in this default location
     volumes:
       - ./Docker/db/staging_data:/staging_data
 
@@ -80,5 +82,6 @@ services:
       - DEPLOYMENT_ENVIRONMENT=prd
     ports:
       - "5432:5432"
+    # Ensure production data persists in the local filesystem and is available to the container in its expected location
     volumes:
       - ./data/postgres/prd:/var/lib/postgresql/data
