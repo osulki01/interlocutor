@@ -6,13 +6,95 @@
 #    pip-compile-multi
 #
 -r base_requirements.txt
-attrs==20.3.0             # via pytest
-coverage==5.3             # via -r Docker/recommender/python_requirements/stg_requirements.in
-iniconfig==1.1.1          # via pytest
-packaging==20.4           # via pytest
-pluggy==0.13.1            # via pytest
-py==1.9.0                 # via pytest
-pyfakefs==4.3.1           # via -r Docker/recommender/python_requirements/stg_requirements.in
-pyparsing==2.4.7          # via packaging
-pytest==6.1.2             # via -r Docker/recommender/python_requirements/stg_requirements.in
-toml==0.10.2              # via pytest
+attrs==20.3.0
+# via pytest
+# via -r Docker/recommender/python_requirements/base_requirements.in
+# via
+#   spacy
+#   thinc
+# via
+#   spacy
+#   thinc
+# via requests
+# via requests
+coverage==5.3.1
+# via -r Docker/recommender/python_requirements/stg_requirements.in
+# via
+#   preshed
+#   spacy
+#   thinc
+# via requests
+# via
+#   catalogue
+#   pluggy
+#   pytest
+iniconfig==1.1.1
+# via pytest
+# via scikit-learn
+# via
+#   preshed
+#   spacy
+#   thinc
+# via
+#   -r Docker/recommender/python_requirements/base_requirements.in
+#   blis
+#   pandas
+#   scikit-learn
+#   scipy
+#   spacy
+#   thinc
+packaging==20.8
+# via pytest
+# via -r Docker/recommender/python_requirements/base_requirements.in
+# via
+#   spacy
+#   thinc
+pluggy==0.13.1
+# via pytest
+# via
+#   spacy
+#   thinc
+# via -r Docker/recommender/python_requirements/base_requirements.in
+py==1.10.0
+# via pytest
+pyfakefs==4.3.3
+# via -r Docker/recommender/python_requirements/stg_requirements.in
+pyparsing==2.4.7
+# via packaging
+pytest==6.2.1
+# via -r Docker/recommender/python_requirements/stg_requirements.in
+# via pandas
+# via -r Docker/recommender/python_requirements/base_requirements.in
+# via pandas
+# via
+#   -r Docker/recommender/python_requirements/base_requirements.in
+#   -r Docker/recommender/python_requirements/stg_requirements.in
+# via
+#   -r Docker/recommender/python_requirements/base_requirements.in
+#   spacy
+# via -r Docker/recommender/python_requirements/base_requirements.in
+# via scikit-learn
+# via python-dateutil
+# via beautifulsoup4
+# via -r Docker/recommender/python_requirements/base_requirements.in
+# via -r Docker/recommender/python_requirements/base_requirements.in
+# via
+#   spacy
+#   thinc
+# via spacy
+# via scikit-learn
+toml==0.10.2
+# via pytest
+# via
+#   -r Docker/recommender/python_requirements/base_requirements.in
+#   spacy
+#   thinc
+# via importlib-metadata
+# via requests
+# via
+#   spacy
+#   thinc
+# via importlib-metadata
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

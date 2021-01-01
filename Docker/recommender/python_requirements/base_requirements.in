@@ -5,5 +5,7 @@ psycopg2
 python-dotenv
 pyyaml
 requests
+scikit-learn
+spacy
 sqlalchemy
 tqdm

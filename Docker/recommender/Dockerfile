@@ -13,6 +13,7 @@ WORKDIR $working_directory
 COPY . .
 ARG DEPLOYMENT_ENVIRONMENT
 RUN pip install --user --requirement python_requirements/${DEPLOYMENT_ENVIRONMENT}_requirements.txt
+RUN python -m spacy download en_core_web_sm
 
 # Ensure the local namespace python packages can be imported and used from anywhere
 ENV PYTHONPATH="${PYTHONPATH}:${working_directory}"

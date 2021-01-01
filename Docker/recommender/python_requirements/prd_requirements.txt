@@ -6,3 +6,6 @@
 #    pip-compile-multi
 #
 -r base_requirements.txt
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools
