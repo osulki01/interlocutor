@@ -293,7 +293,7 @@ def test_record_columnists_recent_article_content():
         curs.execute('SELECT * FROM daily_mail.recent_article_content;')
 
         table_tuples = curs.fetchall()
-        actual_table = pd.DataFrame(table_tuples, columns=['url', 'title', 'content'])
+        actual_table = pd.DataFrame(table_tuples, columns=['id', 'url', 'title', 'content'])
 
         db_connection._conn.commit()
 
@@ -325,7 +325,7 @@ def test_record_columnists_recent_article_links():
         curs.execute('SELECT * FROM daily_mail.columnist_recent_article_links;')
 
         table_tuples = curs.fetchall()
-        table_before_extracting = pd.DataFrame(table_tuples, columns=['columnist', 'url'])
+        table_before_extracting = pd.DataFrame(table_tuples, columns=['columnist', 'article_id', 'url'])
 
         db_connection._conn.commit()
 
@@ -337,7 +337,7 @@ def test_record_columnists_recent_article_links():
         curs.execute('SELECT * FROM daily_mail.columnist_recent_article_links;')
 
         table_tuples = curs.fetchall()
-        table_after_extracting = pd.DataFrame(table_tuples, columns=['columnist', 'url'])
+        table_after_extracting = pd.DataFrame(table_tuples, columns=['columnist', 'article_id', 'url'])
 
         # Tidy up and delete newly inserted rows those that don't exist in the staging data
         # Docker/db/staging_data/daily_mail.columnist_recent_article_links.csv)

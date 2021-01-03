@@ -1,6 +1,7 @@
 """Crawl the Daily Mail website and download article metadata/content."""
 
 # Standard libraries
+import hashlib
 import time
 from typing import Dict, List, Tuple
 from urllib import parse
@@ -158,7 +159,7 @@ class ArticleDownloader:
             query="""
             SELECT * 
             FROM daily_mail.columnist_recent_article_links 
-            WHERE url NOT IN (SELECT url FROM daily_mail.recent_article_content);
+            WHERE article_id NOT IN (SELECT id FROM daily_mail.recent_article_content);
             """
         )
 
@@ -170,13 +171,18 @@ class ArticleDownloader:
         ):
             title, content = self._get_article_title_and_content(url=url)
 
-            data_for_database = pd.DataFrame(data={'url': [url], 'title': [title], 'content': [content]})
+            data_for_database = pd.DataFrame(data={
+                'id': [hashlib.md5(url.encode('utf-8')).hexdigest()],
+                'url': [url],
+                'title': [title],
+                'content': [content]
+            })
 
             self._db_connection.upload_new_data_only_to_existing_table(
                 dataframe=data_for_database,
                 table_name='recent_article_content',
                 schema='daily_mail',
-                id_column='url'
+                id_column='id'
             )
 
     def record_columnists_recent_article_links(self) -> None:
@@ -193,17 +199,21 @@ class ArticleDownloader:
             author = author_page['columnist']
             homepage = author_page['homepage']
 
+            article_urls = self._get_recent_article_links(homepage)
+            hashed_urls = [hashlib.md5(val.encode('utf-8')).hexdigest() for val in article_urls]
+
             print(f'Gathering links for recent articles by Daily Mail columnist {author}')
             recent_articles = pd.DataFrame(data={
                 'columnist': author,
-                'url': self._get_recent_article_links(homepage)
+                'article_id': hashed_urls,
+                'url': article_urls
             })
 
             self._db_connection.upload_new_data_only_to_existing_table(
                 dataframe=recent_articles,
                 table_name='columnist_recent_article_links',
                 schema='daily_mail',
-                id_column='url'
+                id_column='article_id'
             )
 
             # Be polite, do not bombard API with too many requests at once
