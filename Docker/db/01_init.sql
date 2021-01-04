@@ -85,21 +85,21 @@ COMMENT ON COLUMN daily_mail.columnists.homepage IS 'URL of the columnist homepa
 
 
 -- Links to recent articles by each columnist
-CREATE TABLE daily_mail.columnist_recent_article_links
+CREATE TABLE daily_mail.columnist_article_links
 (
     columnist  VARCHAR,
     article_id CHAR(32) PRIMARY KEY,
     url        VARCHAR
 );
 
-COMMENT ON TABLE daily_mail.columnist_recent_article_links IS 'Links to recent articles by columnist.';
-COMMENT ON COLUMN daily_mail.columnist_recent_article_links.columnist IS 'Name of the writer';
-COMMENT ON COLUMN daily_mail.columnist_recent_article_links.article_id IS 'Hash of url to create unique identifier of fixed length';
-COMMENT ON COLUMN daily_mail.columnist_recent_article_links.url IS 'Link to the article';
+COMMENT ON TABLE daily_mail.columnist_article_links IS 'Links to recent articles by columnist.';
+COMMENT ON COLUMN daily_mail.columnist_article_links.columnist IS 'Name of the writer';
+COMMENT ON COLUMN daily_mail.columnist_article_links.article_id IS 'Hash of url to create unique identifier of fixed length';
+COMMENT ON COLUMN daily_mail.columnist_article_links.url IS 'Link to the article';
 
 
 -- Content for recent articles by each columnist
-CREATE TABLE daily_mail.recent_article_content
+CREATE TABLE daily_mail.article_content
 (
     id      CHAR(32),
     url     VARCHAR,
@@ -107,11 +107,11 @@ CREATE TABLE daily_mail.recent_article_content
     content VARCHAR,
     CONSTRAINT fk_id
       FOREIGN KEY(id)
-	  REFERENCES daily_mail.columnist_recent_article_links(article_id)
+	  REFERENCES daily_mail.columnist_article_links(article_id)
 );
 
-COMMENT ON TABLE daily_mail.recent_article_content IS 'Text content of recent articles by columnists.';
-COMMENT ON COLUMN daily_mail.recent_article_content.id IS 'Hash of url to create unique identifier of fixed length';
-COMMENT ON COLUMN daily_mail.recent_article_content.url IS 'Link to article';
-COMMENT ON COLUMN daily_mail.recent_article_content.title IS 'Title of article';
-COMMENT ON COLUMN daily_mail.recent_article_content.content IS 'Text content of article';
+COMMENT ON TABLE daily_mail.article_content IS 'Text content of recent articles by columnists.';
+COMMENT ON COLUMN daily_mail.article_content.id IS 'Hash of url to create unique identifier of fixed length';
+COMMENT ON COLUMN daily_mail.article_content.url IS 'Link to article';
+COMMENT ON COLUMN daily_mail.article_content.title IS 'Title of article';
+COMMENT ON COLUMN daily_mail.article_content.content IS 'Text content of article';

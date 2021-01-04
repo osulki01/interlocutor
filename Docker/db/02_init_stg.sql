@@ -36,7 +36,7 @@ COPY the_guardian.article_content FROM '/staging_data/the_guardian.article_conte
 ---------------------------------------------------
 
 COPY daily_mail.columnists FROM '/staging_data/daily_mail.columnists.csv' WITH CSV HEADER;
-COPY daily_mail.columnist_recent_article_links
-    FROM '/staging_data/daily_mail.columnist_recent_article_links.csv' WITH CSV HEADER;
-COPY daily_mail.recent_article_content
-    FROM '/staging_data/daily_mail.recent_article_content.csv' WITH CSV HEADER;
+COPY daily_mail.columnist_article_links
+    FROM '/staging_data/daily_mail.columnist_article_links.csv' WITH CSV HEADER;
+COPY daily_mail.article_content
+    FROM '/staging_data/daily_mail.article_content.csv' WITH CSV HEADER;

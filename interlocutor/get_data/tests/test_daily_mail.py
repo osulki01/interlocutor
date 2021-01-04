@@ -277,8 +277,8 @@ def test_record_columnist_home_pages(monkeypatch):
 @pytest.mark.integration
 def test_record_columnists_recent_article_content():
     """
-    The content of articles whose links are stored in the daily_mail.columnist_recent_article_links table,
-    is extracted and stored in daily_mail.recent_article_content
+    The content of articles whose links are stored in the daily_mail.columnist_article_links table,
+    is extracted and stored in daily_mail.article_content
     """
 
     article_downloader = daily_mail.ArticleDownloader()
@@ -290,7 +290,7 @@ def test_record_columnists_recent_article_content():
     db_connection._create_connection()
 
     with db_connection._conn.cursor() as curs:
-        curs.execute('SELECT * FROM daily_mail.recent_article_content;')
+        curs.execute('SELECT * FROM daily_mail.article_content;')
 
         table_tuples = curs.fetchall()
         actual_table = pd.DataFrame(table_tuples, columns=['id', 'url', 'title', 'content'])
@@ -298,8 +298,8 @@ def test_record_columnists_recent_article_content():
         db_connection._conn.commit()
 
         # Tidy up and delete newly inserted rows those that don't exist in the staging data
-        # Docker/db/staging_data/daily_mail.recent_article_content.csv)
-        curs.execute("""DELETE FROM daily_mail.recent_article_content WHERE url <> 
+        # Docker/db/staging_data/daily_mail.article_content.csv)
+        curs.execute("""DELETE FROM daily_mail.article_content WHERE url <> 
         'https://www.dailymail.co.uk/tvshowbiz/article-9041823/BAZ-BAMIGBOYE-day-Carey-Mulligan-thought-kill-Ralph-Fiennes.html';
         """)
 
@@ -322,7 +322,7 @@ def test_record_columnists_recent_article_links():
     db_connection._create_connection()
 
     with db_connection._conn.cursor() as curs:
-        curs.execute('SELECT * FROM daily_mail.columnist_recent_article_links;')
+        curs.execute('SELECT * FROM daily_mail.columnist_article_links;')
 
         table_tuples = curs.fetchall()
         table_before_extracting = pd.DataFrame(table_tuples, columns=['columnist', 'article_id', 'url'])
@@ -334,15 +334,15 @@ def test_record_columnists_recent_article_links():
     article_downloader.record_columnists_recent_article_links()
 
     with db_connection._conn.cursor() as curs:
-        curs.execute('SELECT * FROM daily_mail.columnist_recent_article_links;')
+        curs.execute('SELECT * FROM daily_mail.columnist_article_links;')
 
         table_tuples = curs.fetchall()
         table_after_extracting = pd.DataFrame(table_tuples, columns=['columnist', 'article_id', 'url'])
 
         # Tidy up and delete newly inserted rows those that don't exist in the staging data
-        # Docker/db/staging_data/daily_mail.columnist_recent_article_links.csv)
+        # Docker/db/staging_data/daily_mail.columnist_article_links.csv)
         curs.execute("""
-        DELETE FROM daily_mail.columnist_recent_article_links
+        DELETE FROM daily_mail.columnist_article_links
         WHERE url NOT IN (
           'https://www.dailymail.co.uk/tvshowbiz/article-9041823/BAZ-BAMIGBOYE-day-Carey-Mulligan-thought-kill-Ralph-Fiennes.html',
           'https://www.dailymail.co.uk/debate/article-9037459/CRAIG-BROWN-Crowns-bit-fishy-Lady-Anne-Chovy.html'

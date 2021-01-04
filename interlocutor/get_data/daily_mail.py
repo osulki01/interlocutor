@@ -158,8 +158,8 @@ class ArticleDownloader:
         author_and_recent_article_links = self._db_connection.get_dataframe(
             query="""
             SELECT * 
-            FROM daily_mail.columnist_recent_article_links 
-            WHERE article_id NOT IN (SELECT id FROM daily_mail.recent_article_content);
+            FROM daily_mail.columnist_article_links 
+            WHERE article_id NOT IN (SELECT id FROM daily_mail.article_content);
             """
         )
 
@@ -180,7 +180,7 @@ class ArticleDownloader:
 
             self._db_connection.upload_new_data_only_to_existing_table(
                 dataframe=data_for_database,
-                table_name='recent_article_content',
+                table_name='article_content',
                 schema='daily_mail',
                 id_column='id'
             )
@@ -211,7 +211,7 @@ class ArticleDownloader:
 
             self._db_connection.upload_new_data_only_to_existing_table(
                 dataframe=recent_articles,
-                table_name='columnist_recent_article_links',
+                table_name='columnist_article_links',
                 schema='daily_mail',
                 id_column='article_id'
             )
