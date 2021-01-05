@@ -31,6 +31,11 @@ COPY testing_schema.testing_table FROM '/staging_data/testing_schema.testing_tab
 COPY the_guardian.article_metadata FROM '/staging_data/the_guardian.article_metadata.csv' WITH CSV HEADER;
 COPY the_guardian.article_content FROM '/staging_data/the_guardian.article_content.csv' WITH CSV HEADER;
 
+-- This csv is empty to test scenario where an article has not been preprocessed yet
+COPY the_guardian.article_content_bow_preprocessed
+    FROM '/staging_data/the_guardian.article_content_bow_preprocessed.csv' WITH CSV HEADER;
+
+
 ---------------------------------------------------
 -- DAILY MAIL ARTICLES
 ---------------------------------------------------
@@ -40,3 +45,5 @@ COPY daily_mail.columnist_article_links
     FROM '/staging_data/daily_mail.columnist_article_links.csv' WITH CSV HEADER;
 COPY daily_mail.article_content
     FROM '/staging_data/daily_mail.article_content.csv' WITH CSV HEADER;
+COPY daily_mail.article_content_bow_preprocessed
+    FROM '/staging_data/daily_mail.article_content_bow_preprocessed.csv' WITH CSV HEADER;

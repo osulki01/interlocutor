@@ -5,8 +5,12 @@ import collections
 from typing import List
 
 # Third party imports
+from psycopg2 import sql as psy_sql
 import spacy
 import tqdm
+
+# Internal imports
+from interlocutor.database import postgresql
 
 
 class BagOfWordsPreprocessor:
@@ -35,8 +39,51 @@ class BagOfWordsPreprocessor:
         self._batch_size = batch_size
         self._number_of_processors = number_of_processors
         self._spacy_nlp = spacy.load(name='en_core_web_sm', disable=['ner', 'parser', 'tagger', 'textcat'])
+        self._db_connection = postgresql.DatabaseConnection()
 
-    def preprocess_texts(self, texts: List[str]):
+        self._daily_mail_db = {
+            'schema': 'daily_mail',
+            'raw_content': 'recent_article_content',
+            'processed_content': 'recent_article_content_bow_processed'
+        }
+
+        self._guardian_db = {
+            'schema': 'the_guardian',
+            'raw_content': 'article_content',
+            'processed_content': 'article_content_bow_processed'
+        }
+
+    def preprocess_all_article_content(self) -> None:
+        """
+        Extract all of the content from articles (which have not already been preprocessed), transform the text,
+        and then upload to database.
+        """
+
+        for schema in ['daily_mail', 'the_guardian']:
+
+            # Extract articles which have not already been processed
+            sql_query = psy_sql.SQL(
+                string="""SELECT id, content 
+                          FROM {raw_content} 
+                          WHERE id NOT IN (SELECT ID FROM {processed_content})
+                          """).format(
+                raw_content=psy_sql.Identifier(schema, 'article_content'),
+                processed_content=psy_sql.Identifier(schema, 'article_content_bow_preprocessed')
+            )
+
+            articles = self._db_connection.get_dataframe(query=sql_query)
+
+            articles['processed_content'] = self._preprocess_texts(articles['content'].values)
+            articles.drop(columns='content', inplace=True)  # Only retain processed content
+
+            self._db_connection.upload_new_data_only_to_existing_table(
+                dataframe=articles,
+                table_name='article_content_bow_preprocessed',
+                schema=schema,
+                id_column='id'
+            )
+
+    def _preprocess_texts(self, texts: List[str]) -> List[str]:
         """
         Remove stop words and punctuation, then lemmatise and make everything lowercase.
 

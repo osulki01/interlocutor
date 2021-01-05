@@ -44,7 +44,7 @@ COMMENT ON COLUMN the_guardian.article_metadata.pillar_id IS 'High-level section
 COMMENT ON COLUMN the_guardian.article_metadata.pillar_name IS 'High-level section name';
 
 
--- Content
+-- Raw article content
 CREATE TABLE the_guardian.article_content
 (
     id                        CHAR(32) PRIMARY KEY,
@@ -63,6 +63,21 @@ COMMENT ON COLUMN the_guardian.article_content.guardian_id IS 'Path to the artic
 COMMENT ON COLUMN the_guardian.article_content.web_publication_timestamp IS 'Combined date and time of publication';
 COMMENT ON COLUMN the_guardian.article_content.api_url IS 'URL of the raw content';
 COMMENT ON COLUMN the_guardian.article_content.content IS 'Text content of the article';
+
+
+-- Preprocessed content for recent articles by each columnist for use in bag of words models
+CREATE TABLE the_guardian.article_content_bow_preprocessed
+(
+    id      CHAR(32) PRIMARY KEY,
+    processed_content VARCHAR,
+    CONSTRAINT fk_id
+      FOREIGN KEY(id)
+	  REFERENCES the_guardian.article_content(id)
+);
+
+COMMENT ON TABLE the_guardian.article_content_bow_preprocessed IS 'Text content of articles.';
+COMMENT ON COLUMN the_guardian.article_content_bow_preprocessed.id IS 'Unique identifier of article (hash of guardian_id)';
+COMMENT ON COLUMN the_guardian.article_content_bow_preprocessed.processed_content IS 'Processed text content of article';
 
 
 ---------------------------------------------------
@@ -101,7 +116,7 @@ COMMENT ON COLUMN daily_mail.columnist_article_links.url IS 'Link to the article
 -- Content for recent articles by each columnist
 CREATE TABLE daily_mail.article_content
 (
-    id      CHAR(32),
+    id      CHAR(32) PRIMARY KEY,
     url     VARCHAR,
     title   VARCHAR,
     content VARCHAR,
@@ -115,3 +130,18 @@ COMMENT ON COLUMN daily_mail.article_content.id IS 'Hash of url to create unique
 COMMENT ON COLUMN daily_mail.article_content.url IS 'Link to article';
 COMMENT ON COLUMN daily_mail.article_content.title IS 'Title of article';
 COMMENT ON COLUMN daily_mail.article_content.content IS 'Text content of article';
+
+
+-- Preprocessed content for recent articles by each columnist for use in bag of words models
+CREATE TABLE daily_mail.article_content_bow_preprocessed
+(
+    id      CHAR(32) PRIMARY KEY,
+    processed_content VARCHAR,
+    CONSTRAINT fk_id
+      FOREIGN KEY(id)
+	  REFERENCES daily_mail.article_content(id)
+);
+
+COMMENT ON TABLE daily_mail.article_content_bow_preprocessed IS 'Text content of recent articles by columnists.';
+COMMENT ON COLUMN daily_mail.article_content_bow_preprocessed.id IS 'Unique identifier (hash of article URL)';
+COMMENT ON COLUMN daily_mail.article_content_bow_preprocessed.processed_content IS 'Processed text content of article';
