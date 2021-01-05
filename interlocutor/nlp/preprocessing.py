@@ -63,8 +63,8 @@ class BagOfWordsPreprocessor:
 
             # Extract articles which have not already been processed
             sql_query = psy_sql.SQL(
-                string="""SELECT id, content 
-                          FROM {raw_content} 
+                string="""SELECT id, content
+                          FROM {raw_content}
                           WHERE id NOT IN (SELECT ID FROM {processed_content})
                           """).format(
                 raw_content=psy_sql.Identifier(schema, 'article_content'),

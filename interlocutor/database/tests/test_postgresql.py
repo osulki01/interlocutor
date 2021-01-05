@@ -101,6 +101,11 @@ def test_get_column_names_existing_table():
 
     assert all([actual == expected for actual, expected in zip(actual_column_names, expected_column_names)])
 
+    # Appropriate exception is raised if column names cannot be retrieved
+    with pytest.raises(expected_exception=pd.io.sql.DatabaseError, match='Execution failed on sql*'):
+
+        db_connection._get_column_names_existing_table(table_name='non_existent_table', schema='testing_schema')
+
 
 def test_get_dataframe_demands_correct_arguments():
     """Exceptions or warnings should be raised if an incorrect combination of arguments is provided."""

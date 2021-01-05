@@ -344,13 +344,13 @@ class ArticleDownloader:
         )
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover (exclude from testing coverage report)
 
-    print('Initialising class for downloading article metadata and content')
+    print('Initialising class for downloading article metadata and content from The Guardian')
     article_downloader = ArticleDownloader()
 
     print('Retrieving metadata')
-    article_downloader.record_opinion_articles_metadata(publication_start_timestamp='2020-01-01T00:00:00Z')
+    article_downloader.record_opinion_articles_metadata(publication_start_timestamp='2020-10-01T00:00:00Z')
 
     print('Retrieving article content')
     article_downloader.record_opinion_articles_content(number_of_articles=10)

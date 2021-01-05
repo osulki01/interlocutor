@@ -138,6 +138,14 @@ def test_get_latest_opinion_articles_datetime_reached():
     assert actual_content == expected_content
 
 
+def test_get_latest_opinion_articles_datetime_reached_raises_exception_invalid_data_type():
+    """Exception is raised if incorrect data_type provided."""
+
+    article_downloader = the_guardian.ArticleDownloader()
+
+    with pytest.raises(ValueError, match="`data_type` must either be 'metadata' or 'content'"):
+        article_downloader._get_latest_opinion_articles_datetime_reached(data_type='invalid_data_type')
+
 @pytest.mark.integration
 def test_record_opinion_articles_content():
     """
@@ -194,8 +202,9 @@ def test_record_opinion_articles_content():
     pd.testing.assert_frame_equal(actual_content, expected_content)
 
 
+@pytest.mark.parametrize("publication_start_timestamp", [None, '2020-01-01T01:01:00Z'])
 @pytest.mark.integration
-def test_record_opinion_articles_metadata(monkeypatch):
+def test_record_opinion_articles_metadata(monkeypatch, publication_start_timestamp):
     """
     Downloader iterates through pages and saves them to disk.
     """
@@ -255,7 +264,7 @@ def test_record_opinion_articles_metadata(monkeypatch):
     article_downloader = the_guardian.ArticleDownloader()
     monkeypatch.setattr(article_downloader, "_call_api_and_display_exceptions", mock_api_call)
 
-    article_downloader.record_opinion_articles_metadata()
+    article_downloader.record_opinion_articles_metadata(publication_start_timestamp)
 
     expected_metadata = pd.DataFrame(
         {

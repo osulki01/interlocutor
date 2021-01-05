@@ -220,7 +220,7 @@ class ArticleDownloader:
             time.sleep(0.5)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover (exclude from testing coverage report)
 
     print('Initialising class for downloading article metadata and content from The Daily Mail')
     article_downloader = ArticleDownloader()
