@@ -170,7 +170,7 @@ def test_run_cli_command_and_display_exception(capsys):
 
 
 # "fs" is the reference to the fake file system from the fixture provided by pyfakefs library
-def test_save_article_data_to_disk(fs):
+def test_write_or_append_dataframe_to_csv(fs):
     """Saves dataframe to file and appends if it already exists."""
 
     # Save data for the first time
