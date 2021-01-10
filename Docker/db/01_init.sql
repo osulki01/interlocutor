@@ -145,3 +145,22 @@ CREATE TABLE daily_mail.article_content_bow_preprocessed
 COMMENT ON TABLE daily_mail.article_content_bow_preprocessed IS 'Text content of recent articles by columnists.';
 COMMENT ON COLUMN daily_mail.article_content_bow_preprocessed.id IS 'Unique identifier (hash of article URL)';
 COMMENT ON COLUMN daily_mail.article_content_bow_preprocessed.processed_content IS 'Processed text content of article';
+
+
+---------------------------------------------------
+-- ENCODED REPRESENTATIONS OF ARTICLE CONTENT
+---------------------------------------------------
+
+CREATE SCHEMA encoded_articles;
+GRANT ALL PRIVILEGES ON SCHEMA encoded_articles TO $POSTGRES_USER;
+
+-- Vocabulary across all articles
+CREATE TABLE encoded_articles.tfidf_vocabulary
+(
+    word                  VARCHAR PRIMARY KEY,
+    feature_matrix_index  INTEGER
+);
+
+COMMENT ON TABLE encoded_articles.tfidf_vocabulary IS 'Mapping showing every distinct word in the preprocessed version of articles and their index in the tf-idf feature matrix.';
+COMMENT ON COLUMN encoded_articles.tfidf_vocabulary.word IS 'Individual word from corpus across all articles';
+COMMENT ON COLUMN encoded_articles.tfidf_vocabulary.feature_matrix_index IS 'Index within the feature matrix';

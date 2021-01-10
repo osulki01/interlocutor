@@ -47,3 +47,10 @@ COPY daily_mail.article_content
     FROM '/staging_data/daily_mail.article_content.csv' WITH CSV HEADER;
 COPY daily_mail.article_content_bow_preprocessed
     FROM '/staging_data/daily_mail.article_content_bow_preprocessed.csv' WITH CSV HEADER;
+
+
+---------------------------------------------------
+-- ENCODED REPRESENTATIONS OF ARTICLE CONTENT
+---------------------------------------------------
+
+COPY encoded_articles.tfidf_vocabulary FROM '/staging_data/encoded_articles.tfidf_vocabulary.csv' WITH CSV HEADER;
