@@ -232,9 +232,9 @@ def test_record_columnist_home_pages(monkeypatch):
         table_tuples = curs.fetchall()
         actual_columnists = pd.DataFrame(table_tuples, columns=['columnist', 'homepage'])
 
-        # Tidy up and delete newly inserted rows
-        # (those that don't exist in the staging data Docker/db/staging_data/daily_mail.columnists.csv)
-        curs.execute("DELETE FROM daily_mail.columnists WHERE columnist NOT IN ('Baz Bamigboye', 'Craig Brown');")
+        # Tidy up and return table to its original form
+        curs.execute("TRUNCATE TABLE daily_mail.columnists;")
+        curs.execute("COPY daily_mail.columnists FROM '/staging_data/daily_mail.columnists.csv' WITH CSV HEADER;")
 
         db_connection._conn.commit()
 
@@ -297,11 +297,14 @@ def test_record_columnists_recent_article_content():
 
         db_connection._conn.commit()
 
-        # Tidy up and delete newly inserted rows those that don't exist in the staging data
-        # Docker/db/staging_data/daily_mail.article_content.csv)
-        curs.execute("""DELETE FROM daily_mail.article_content WHERE url <> 
-        'https://www.dailymail.co.uk/tvshowbiz/article-9041823/BAZ-BAMIGBOYE-day-Carey-Mulligan-thought-kill-Ralph-Fiennes.html';
-        """)
+        # Tidy up and return table to its original form
+        original_data = pd.read_csv('Docker/db/staging_data/daily_mail.article_content.csv')
+        original_urls = original_data['url'].values
+
+        curs.execute(
+            query='DELETE FROM daily_mail.article_content WHERE url NOT IN %(original_urls)s',
+            vars={'original_urls': tuple(original_urls)}
+        )
 
         db_connection._conn.commit()
 
@@ -339,15 +342,14 @@ def test_record_columnists_recent_article_links():
         table_tuples = curs.fetchall()
         table_after_extracting = pd.DataFrame(table_tuples, columns=['columnist', 'article_id', 'url'])
 
-        # Tidy up and delete newly inserted rows those that don't exist in the staging data
-        # Docker/db/staging_data/daily_mail.columnist_article_links.csv)
-        curs.execute("""
-        DELETE FROM daily_mail.columnist_article_links
-        WHERE url NOT IN (
-          'https://www.dailymail.co.uk/tvshowbiz/article-9041823/BAZ-BAMIGBOYE-day-Carey-Mulligan-thought-kill-Ralph-Fiennes.html',
-          'https://www.dailymail.co.uk/debate/article-9037459/CRAIG-BROWN-Crowns-bit-fishy-Lady-Anne-Chovy.html'
-        );
-        """)
+        # Tidy up and return table to its original form
+        original_data = pd.read_csv('Docker/db/staging_data/daily_mail.columnist_article_links.csv')
+        original_urls = original_data['url'].values
+
+        curs.execute(
+            query='DELETE FROM daily_mail.columnist_article_links WHERE url NOT IN %(original_urls)s',
+            vars={'original_urls': tuple(original_urls)}
+        )
 
         db_connection._conn.commit()
 
@@ -359,5 +361,8 @@ def test_record_columnists_recent_article_links():
     # Appropriate URLs have been scraped
     assert all(url.startswith('https://www.dailymail.co.uk/') for url in table_after_extracting['url'].values)
 
-    # Only links for the relevant columnists have been pulled
-    assert table_after_extracting['columnist'].unique().tolist() == ['Baz Bamigboye', 'Craig Brown']
+    # Only links for the relevant columnists (stored in daily_mail.columnists) have been pulled
+    df_expected_columnists = pd.read_csv('Docker/db/staging_data/daily_mail.columnists.csv')
+    expected_columnists = df_expected_columnists['columnist'].unique().tolist()
+
+    assert table_after_extracting['columnist'].unique().tolist() == expected_columnists

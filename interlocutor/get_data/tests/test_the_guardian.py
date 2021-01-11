@@ -146,6 +146,7 @@ def test_get_latest_opinion_articles_datetime_reached_raises_exception_invalid_d
     with pytest.raises(ValueError, match="`data_type` must either be 'metadata' or 'content'"):
         article_downloader._get_latest_opinion_articles_datetime_reached(data_type='invalid_data_type')
 
+
 @pytest.mark.integration
 def test_record_opinion_articles_content():
     """
@@ -188,12 +189,15 @@ def test_record_opinion_articles_content():
         # against
         actual_content['content'] = actual_content['content'].apply(lambda x: x[:89])
 
-        # Tidy up and delete newly inserted rows
+        # Tidy up and revert to original table by deleting newly inserted rows
+        df_article_metadata = pd.read_csv('Docker/db/staging_data/the_guardian.article_metadata.csv')
+        df_article_content = pd.read_csv('Docker/db/staging_data/the_guardian.article_content.csv')
+        new_rows_pulled = ~df_article_metadata['id'].isin(df_article_content['id'].values)
+        new_ids_pulled = df_article_metadata.loc[new_rows_pulled, 'id'].values
+
         curs.execute(
-            """
-            DELETE FROM the_guardian.article_content
-            WHERE id = '052015a6d57893adfa4be70521b1ad3b';
-            """
+            query="DELETE FROM the_guardian.article_content WHERE id IN (%(new_ids_pulled)s);",
+            vars={'new_ids_pulled': tuple(new_ids_pulled)}
         )
 
         db_connection._conn.commit()
@@ -325,12 +329,18 @@ def test_record_opinion_articles_metadata(monkeypatch, publication_start_timesta
             columns=['id', 'guardian_id', 'content_type', 'section_id', 'section_name', 'web_publication_timestamp',
                      'web_title', 'web_url', 'api_url', 'pillar_id', 'pillar_name'])
 
-        # Tidy up and delete newly inserted rows
+        # Tidy up and revert to original table by deleting newly inserted rows
+        df_article_metadata_original = pd.read_csv('Docker/db/staging_data/the_guardian.article_metadata.csv')
+        new_rows_pulled = ~expected_metadata['id'].isin(df_article_metadata_original['id'].values)
+        new_ids_pulled = expected_metadata.loc[new_rows_pulled, 'id'].values
+
+        print()
+        print('*' * 50)
+        print(new_ids_pulled)
+
         curs.execute(
-            """
-            DELETE FROM the_guardian.article_metadata
-            WHERE id IN ('7d2669e5a86f5a5eb16862f691482fe3', '069738f52edca2125142e0952dbbfcc0');
-            """
+            query="DELETE FROM the_guardian.article_metadata WHERE id IN %(new_ids_pulled)s;",
+            vars={'new_ids_pulled': tuple(new_ids_pulled)}
         )
 
         db_connection._conn.commit()
