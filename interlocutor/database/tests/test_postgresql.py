@@ -36,7 +36,7 @@ def test_check_database_is_live(monkeypatch):
     monkeypatch.setattr(time, 'sleep', mock_sleep)
 
     with pytest.raises(psycopg2.OperationalError):
-        db_connection_incorrect_database = postgresql.DatabaseConnection(database='incorrect_database')
+        postgresql.DatabaseConnection(database='incorrect_database')
 
 
 def test_execute_database_operation():
