@@ -164,3 +164,15 @@ CREATE TABLE encoded_articles.tfidf_vocabulary
 COMMENT ON TABLE encoded_articles.tfidf_vocabulary IS 'Mapping showing every distinct word in the preprocessed version of articles and their index in the tf-idf feature matrix.';
 COMMENT ON COLUMN encoded_articles.tfidf_vocabulary.word IS 'Individual word from corpus across all articles';
 COMMENT ON COLUMN encoded_articles.tfidf_vocabulary.feature_matrix_index IS 'Index within the feature matrix';
+
+
+-- Placeholder table which will be populated with more columns showing the tf-idf representation of each article
+-- This table is populated in staging with each of the words in encoded_articles.tfidf_vocabulary as its columns
+-- to test scenarios where data is being appended rather than replacing the whole table
+CREATE TABLE encoded_articles.tfidf_representation
+(
+    id VARCHAR PRIMARY KEY
+);
+
+COMMENT ON TABLE encoded_articles.tfidf_representation IS 'tf-idf encoded representation of articles.';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.id IS 'Unique identifier (hash of article URL)';

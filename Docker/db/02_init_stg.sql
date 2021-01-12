@@ -53,4 +53,30 @@ COPY daily_mail.article_content_bow_preprocessed
 -- ENCODED REPRESENTATIONS OF ARTICLE CONTENT
 ---------------------------------------------------
 
+-- Pre-existing vocabulary
 COPY encoded_articles.tfidf_vocabulary FROM '/staging_data/encoded_articles.tfidf_vocabulary.csv' WITH CSV HEADER;
+
+-- For staging only, replace this table with a version which uses the vocabulary from
+-- encoded_articles.tfidf_vocabulary.csv
+DROP TABLE encoded_articles.tfidf_representation;
+
+CREATE TABLE encoded_articles.tfidf_representation
+(
+    id           VARCHAR PRIMARY KEY,
+    "and"          FLOAT,
+    content      FLOAT,
+    other        FLOAT,
+    preprocessed FLOAT,
+    "some"         FLOAT,
+    words        FLOAT
+);
+
+COMMENT ON TABLE encoded_articles.tfidf_representation IS 'tf-idf encoded representation of articles.';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.id IS 'Unique identifier (hash of article URL)';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.and IS 'td-idf for this word in document';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.content IS 'td-idf for this word in document';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.other IS 'td-idf for this word in document';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.preprocessed IS 'td-idf for this word in document';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.some IS 'td-idf for this word in document';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.words IS 'td-idf for this word in document';
+
