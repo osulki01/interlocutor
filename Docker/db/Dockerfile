@@ -13,7 +13,7 @@ COPY environment_variables/.env.${DEPLOYMENT_ENVIRONMENT} /.env
 COPY db/01_init.sql /docker-entrypoint-initdb.d/
 COPY db/02_init_${DEPLOYMENT_ENVIRONMENT}.sql /docker-entrypoint-initdb.d/
 
-# Substitute the postgres_user in initialisation script
+# Substitute the postgres_user in initialisation script with the user defined in environment variable
 RUN source .env && \
 export POSTGRES_USER=$POSTGRES_USER && \
 envsubst < /docker-entrypoint-initdb.d/01_init.sql > /docker-entrypoint-initdb.d/01_init_with_username.sql && \

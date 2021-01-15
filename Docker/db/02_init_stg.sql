@@ -1,4 +1,4 @@
--- Copy staging data so tests can be run against the same typ of tables and data that exists in production
+-- Copy staging data so tests can be run against the same type of tables and data that exists in production
 \connect interlocutor;
 
 ---------------------------------------------------

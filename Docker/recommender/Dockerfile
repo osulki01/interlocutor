@@ -7,7 +7,7 @@ RUN adduser $username sudo
 RUN ["echo", "%sudo ALL=(ALL) NOPASSWD:ALL", ">>", "/etc/sudoers"]
 USER $username
 
-# Ensure current host directory containing python requirements is available and create virtual environment
+# Ensure current host directory containing python requirements is available and install packages
 ARG working_directory=/usr/src/app
 WORKDIR $working_directory
 COPY . .
