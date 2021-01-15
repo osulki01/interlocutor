@@ -4,9 +4,11 @@
 from typing import Dict, List
 
 # Third party libraries
+import numpy as np
 import pandas as pd
 from psycopg2 import sql as psy_sql
 from sklearn.feature_extraction import text as sklearn_text
+from sklearn.metrics import pairwise
 
 # Internal imports
 from interlocutor.database import postgresql
@@ -55,6 +57,39 @@ class TfidfEncoder:
             schema='encoded_articles',
             if_exists='append',
             index=False,
+        )
+
+    def calculate_and_save_similarities(self) -> None:
+        """
+        Load the encoded version of every article and save how similar they are to one another (using cosine
+        similarity).
+        """
+
+        df_encoded_articles = self._db_connection.get_dataframe(
+            table_name='tfidf_representation',
+            schema='encoded_articles'
+        ).set_index('id')
+
+        similarity = pd.DataFrame(
+            index=df_encoded_articles.index,
+            columns=df_encoded_articles.index,
+            data=pairwise.cosine_similarity(df_encoded_articles.values)
+        )
+
+        # The shape of the similarity matrix is fundamentally tied to how many articles exists
+        # (num_articles x num_articles) so it has to be replaced each time
+        self._db_connection.upload_dataframe(
+            dataframe=similarity,
+            table_name='tfidf_similarity',
+            schema='encoded_articles',
+            if_exists='replace'
+        )
+
+        self._db_connection.execute_database_operation(
+            """
+            COMMENT ON TABLE encoded_articles.tfidf_similarity
+            IS 'Cosine similarity between each article using their tfidf representation.';
+            """
         )
 
     def encode_articles(self) -> None:
@@ -116,7 +151,7 @@ class TfidfEncoder:
             if self._use_existing_vocab:
 
                 sql_query = psy_sql.SQL("""
-                    SELECT * FROM {source_schema_and_table} 
+                    SELECT * FROM {source_schema_and_table}
                     WHERE id NOT IN (SELECT id FROM encoded_articles.tfidf_representation);
                     """).format(
                     source_schema_and_table=psy_sql.Identifier(publication, 'article_content_bow_preprocessed')
@@ -150,3 +185,62 @@ class TfidfEncoder:
         df_existing_vocab.set_index('word', inplace=True)
 
         return df_existing_vocab['feature_matrix_index'].to_dict()
+
+    def store_most_similar_articles(self, similarity_threshold: float) -> None:
+        """
+        Analyse the similarity score between all articles, and save the mapping for every article where we can find
+        another similar one in the database.
+
+        Parameters
+        ----------
+        similarity_threshold : float in interval (0,1)
+            Cosine similarity score which the two articles must exceed to be classed as similar.
+            Has to fall between 0 and 1.
+
+        Raises
+        ------
+        ValueError
+            If similarity_threshold does not adhere to 0 < similarity_threshold < 1.
+        """
+
+        if not 0 < similarity_threshold < 1:
+            raise ValueError("similarity_threshold should be between 0 and 1 (non-inclusive)")
+
+        df_similarity = self._db_connection.get_dataframe(
+            table_name='tfidf_similarity',
+            schema='encoded_articles'
+        ).set_index('id')
+
+        df_similarity_array = df_similarity.values
+
+        # Index (positioning) of every article in the matrix
+        article_index_mapping = {index: title for index, title in enumerate(df_similarity.index)}
+
+        # Index (positioning) of every score which exceeds the threshold
+        indices_above_threshold = np.argwhere(df_similarity_array > similarity_threshold)
+
+        # Store the pairs of articles which have a suitable similarity
+        df_above_threshold = pd.DataFrame(columns=['id', 'similar_article_id'], data=indices_above_threshold)
+
+        # Retrieve the actual similarity score by using the row and column position in the original matrix for each pair
+        df_above_threshold['similarity_score'] = \
+            df_similarity_array[indices_above_threshold[:, 0], indices_above_threshold[:, 1]]
+
+        # Remove instances where the article is paired with itself
+        df_above_threshold = df_above_threshold[df_above_threshold['id'] != df_above_threshold['similar_article_id']]
+
+        # Replace indices with the article id so it is more usable
+        df_above_threshold[['id', 'similar_article_id']] = \
+            df_above_threshold[['id', 'similar_article_id']].replace(article_index_mapping)
+
+        # Wipe and replace each time as every article is evaluated against one another. For a more scalable solution, a
+        # graph database may prove more effective so articles do not have to be repeatedly scored against one another
+        self._db_connection.execute_database_operation("TRUNCATE TABLE encoded_articles.tfidf_similar_articles;")
+
+        self._db_connection.upload_dataframe(
+            dataframe=df_above_threshold,
+            table_name='tfidf_similar_articles',
+            schema='encoded_articles',
+            if_exists='append',
+            index=False
+        )

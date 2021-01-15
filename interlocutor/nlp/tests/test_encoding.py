@@ -65,6 +65,70 @@ class TestTfidfEncoder:
 
         pd.testing.assert_frame_equal(actual_vocabulary, expected_vocabulary)
 
+    @pytest.mark.integration
+    def test_calculate_and_save_similarities(self, monkeypatch):
+        """Cosine similarity matrix is calculated and saved to database correctly."""
+
+        def mock_tfidf_encoding(**kwargs):
+            """Mock an encoded version of different articles. Use 1's and 0's for simplicity."""
+
+            # Dataframe with encoded articles based upon a vocabulary of 4 words
+            return pd.DataFrame(
+                columns=['id', 'apple', 'banana', 'cherry', 'lime'],
+                data=[
+                    # Article 1 and 2 should be identical
+                    ['article_1', 1, 0, 0, 0],
+                    ['article_2', 1, 0, 0, 0],
+                    # Article 3 and 4 are similar but not identical
+                    ['article_3', 0, 0, 1, 0],
+                    ['article_4', 0, 1, 1, 0],
+                    # Article_5 is not similar to any
+                    ['article_5', 0, 0, 0, 1],
+                ]
+            )
+
+        # Create encoder which will work with a mock representation of articles
+        tfidf_encoder = encoding.TfidfEncoder()
+        monkeypatch.setattr(tfidf_encoder._db_connection, 'get_dataframe', mock_tfidf_encoding)
+
+        # Analyse and save the similarity between all of the articles against one another
+        tfidf_encoder.calculate_and_save_similarities()
+
+        # Check data that was uploaded to database
+        db_connection = postgresql.DatabaseConnection()
+        db_connection._create_connection()
+
+        with db_connection._conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM encoded_articles.tfidf_similarity;")
+
+            table_tuples = cursor.fetchall()
+            actual_similarity = pd.DataFrame(
+                data=table_tuples,
+                columns=['id', 'article_1', 'article_2', 'article_3', 'article_4', 'article_5'])
+
+            # Tidy up and revert to original version of database
+            cursor.execute("DROP TABLE encoded_articles.tfidf_similarity;")
+
+            db_connection._conn.commit()
+
+        # Check output, cosine similarity calculated using
+        # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise.cosine_similarity.html
+        expected_similarity = pd.DataFrame(
+            columns=['id', 'article_1', 'article_2', 'article_3', 'article_4', 'article_5'],
+            data=[
+                # Article 1 and 2 should be identical
+                ['article_1', 1.0, 1.0, 0.0, 0.0, 0.0],
+                ['article_2', 1.0, 1.0, 0.0, 0.0, 0.0],
+                # Article 3 and 4 are similar but not identical
+                ['article_3', 0.0, 0.0, 1.0, 0.70710, 0.0],
+                ['article_4', 0.0, 0.0, 0.70710, 1.0, 0.0],
+                # Article_5 is not similar to any
+                ['article_5', 0.0, 0.0, 0.0, 0.0, 1.0],
+            ]
+        )
+
+        pd.testing.assert_frame_equal(actual_similarity, expected_similarity)
+
     @pytest.mark.parametrize("use_existing_vocab", [True, False])
     @pytest.mark.integration
     def test_encode_articles(self, use_existing_vocab):
@@ -176,3 +240,89 @@ class TestTfidfEncoder:
         actual_vocabulary = tfidf_encoder._load_vocabulary()
 
         assert actual_vocabulary == expected_vocabulary
+
+    @pytest.mark.parametrize('similarity_threshold', [0.5, 0.8])
+    @pytest.mark.integration
+    def test_store_most_similar_articles(self, monkeypatch, similarity_threshold):
+        """Appropriately similar articles are picked up and saved."""
+
+        def mock_similarity_scores(**kwargs):
+            """Mock the similarity scores between articles."""
+
+            return pd.DataFrame(
+                columns=['id', 'article_1', 'article_2', 'article_3', 'article_4', 'article_5'],
+                data=[
+                    # Article 1 and 2 are very similar
+                    ['article_1', 1.0, 0.9, 0.0, 0.0, 0.0],
+                    ['article_2', 0.9, 1.0, 0.0, 0.0, 0.0],
+
+                    # Article 3 and 4 are quite similar
+                    ['article_3', 0.0, 0.0, 1.0, 0.7, 0.0],
+                    ['article_4', 0.0, 0.0, 0.7, 1.0, 0.0]
+                ]
+            )
+
+        # Create encoder which will work with a mock similarity matrix
+        tfidf_encoder = encoding.TfidfEncoder()
+        monkeypatch.setattr(tfidf_encoder._db_connection, 'get_dataframe', mock_similarity_scores)
+
+        # Check how article pairs are found and saved to database
+        tfidf_encoder.store_most_similar_articles(similarity_threshold=similarity_threshold)
+
+        db_connection = postgresql.DatabaseConnection()
+        db_connection._create_connection()
+
+        with db_connection._conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM encoded_articles.tfidf_similar_articles;")
+
+            table_tuples = cursor.fetchall()
+            actual_article_pairs = pd.DataFrame(
+                data=table_tuples,
+                columns=['id', 'similar_article_id', 'similarity_score']
+            )
+
+            # Tidy up and revert to original version of table
+            cursor.execute("TRUNCATE TABLE encoded_articles.tfidf_similar_articles;")
+
+            db_connection._conn.commit()
+
+        # Check whether pairs found match what we expect
+        if similarity_threshold == 0.5:
+
+            expected_article_pairs = pd.DataFrame(
+                columns=['id', 'similar_article_id', 'similarity_score'],
+                data=[
+                    ['article_1', 'article_2', 0.9],
+                    ['article_2', 'article_1', 0.9],
+                    ['article_3', 'article_4', 0.7],
+                    ['article_4', 'article_3', 0.7]
+                ]
+            )
+
+        # similarity_threshold == 0.8
+        else:
+            expected_article_pairs = pd.DataFrame(
+                columns=['id', 'similar_article_id', 'similarity_score'],
+                data=[
+                    ['article_1', 'article_2', 0.9],
+                    ['article_2', 'article_1', 0.9],
+                ]
+            )
+
+        # Account for the id column being listed as a CHAR(32) data type in the database so remove padded characters to
+        # make it 32 characters
+        actual_article_pairs['id'] = actual_article_pairs['id'].str.strip()
+        actual_article_pairs['similar_article_id'] = actual_article_pairs['similar_article_id'].str.strip()
+
+        pd.testing.assert_frame_equal(actual_article_pairs, expected_article_pairs)
+
+    @pytest.mark.parametrize('similarity_threshold', [-1, 0, 1, 2])
+    def test_store_most_similar_articles_expects_appropriate_threshold(self, similarity_threshold):
+        """Exception is raised if similarity threshold is not between 0 and 1."""
+
+        with pytest.raises(
+                expected_exception=ValueError,
+                match=r'similarity_threshold should be between 0 and 1 \(non-inclusive\)'
+        ):
+            tfidf_encoder = encoding.TfidfEncoder()
+            tfidf_encoder.store_most_similar_articles(similarity_threshold=similarity_threshold)

@@ -171,8 +171,23 @@ COMMENT ON COLUMN encoded_articles.tfidf_vocabulary.feature_matrix_index IS 'Ind
 -- to test scenarios where data is being appended rather than replacing the whole table
 CREATE TABLE encoded_articles.tfidf_representation
 (
-    id VARCHAR PRIMARY KEY
+    id CHAR(32) PRIMARY KEY
 );
 
 COMMENT ON TABLE encoded_articles.tfidf_representation IS 'tf-idf encoded representation of articles.';
 COMMENT ON COLUMN encoded_articles.tfidf_representation.id IS 'Unique identifier (hash of article URL)';
+
+
+-- Similar article pairs
+CREATE TABLE encoded_articles.tfidf_similar_articles
+(
+    id                 CHAR(32),
+    similar_article_id CHAR(32),
+    similarity_score   FLOAT,
+    PRIMARY KEY (id, similar_article_id)
+);
+
+COMMENT ON TABLE encoded_articles.tfidf_similar_articles IS 'Articles which are similar to one another.';
+COMMENT ON COLUMN encoded_articles.tfidf_similar_articles.id IS 'Unique identifier (hash of article URL)';
+COMMENT ON COLUMN encoded_articles.tfidf_similar_articles.similar_article_id IS 'Unique identifier of similar article';
+COMMENT ON COLUMN encoded_articles.tfidf_similar_articles.similarity_score IS 'Cosine similarity between two articles';
