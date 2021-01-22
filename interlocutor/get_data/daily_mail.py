@@ -28,7 +28,8 @@ class ArticleDownloader:
 
         self._db_connection = postgresql.DatabaseConnection()
 
-    def _get_article_title_and_content(self, url) -> Tuple[str, str]:
+    @staticmethod
+    def _get_article_title_and_content(url) -> Tuple[str, str]:
         """
 
         Parameters

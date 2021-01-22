@@ -207,7 +207,7 @@ class TfidfEncoder:
         df_similarity_array = df_similarity.values
 
         # Index (positioning) of every article in the matrix
-        article_index_mapping = {index: title for index, title in enumerate(df_similarity.index)}
+        article_index_mapping = dict((index, title) for index, title in enumerate(df_similarity.index))
 
         # Index (positioning) of every score which exceeds the threshold
         indices_above_threshold = np.argwhere(df_similarity_array > similarity_threshold)
