@@ -61,6 +61,8 @@ class BagOfWordsPreprocessor:
 
         for schema in ['daily_mail', 'the_guardian']:
 
+            print(f'Preprocessing articles from {schema}')
+
             # Extract articles which have not already been processed
             sql_query = psy_sql.SQL(
                 string="""SELECT id, content
@@ -133,3 +135,12 @@ class BagOfWordsPreprocessor:
         """
 
         return bool(token.is_punct or token.is_space or token.is_stop)
+
+
+if __name__ == '__main__':
+
+    print('Initialising class for preprocessing text in preparation for bag of words algorithms')
+    bow_preprocessor = BagOfWordsPreprocessor(batch_size=5, number_of_processors=-1)
+
+    print('Preprocess all articles')
+    bow_preprocessor.preprocess_all_article_content()

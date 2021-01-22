@@ -23,7 +23,7 @@ class TfidfEncoder:
 
         Parameters
         ----------
-        use_existing_vocab : bool (default False)
+        use_existing_vocab : bool (default True)
             Whether to re-fit the vectoriser using all of the article texts (False) or to use an existing vocabulary
             produced by a previous run (True, default).
         """
@@ -59,10 +59,15 @@ class TfidfEncoder:
             index=False,
         )
 
-    def calculate_and_save_similarities(self) -> None:
+    def _calculate_similarities(self) -> pd.DataFrame:
         """
         Load the encoded version of every article and save how similar they are to one another (using cosine
         similarity).
+
+        Returns
+        -------
+        pandas.DataFrame
+            Matrix showing the similarity of every article relative to one another.
         """
 
         df_encoded_articles = self._db_connection.get_dataframe(
@@ -70,26 +75,13 @@ class TfidfEncoder:
             schema='encoded_articles'
         ).set_index('id')
 
-        similarity = pd.DataFrame(
+        # Pandas loads the array column 'encoded' as a string e.g. "[0.0, 0.6, 0.8]" which needs translating to an array
+        encoded_representations = np.array(df_encoded_articles['encoded'].tolist())
+
+        return pd.DataFrame(
             index=df_encoded_articles.index,
             columns=df_encoded_articles.index,
-            data=pairwise.cosine_similarity(df_encoded_articles.values)
-        )
-
-        # The shape of the similarity matrix is fundamentally tied to how many articles exists
-        # (num_articles x num_articles) so it has to be replaced each time
-        self._db_connection.upload_dataframe(
-            dataframe=similarity,
-            table_name='tfidf_similarity',
-            schema='encoded_articles',
-            if_exists='replace'
-        )
-
-        self._db_connection.execute_database_operation(
-            """
-            COMMENT ON TABLE encoded_articles.tfidf_similarity
-            IS 'Cosine similarity between each article using their tfidf representation.';
-            """
+            data=pairwise.cosine_similarity(encoded_representations)
         )
 
     def encode_articles(self) -> None:
@@ -112,22 +104,26 @@ class TfidfEncoder:
         encoded_articles_matrix = vectoriser.fit_transform(preprocessed_content['processed_content'].values)
 
         encoded_articles_dataframe = pd.DataFrame(
-            columns=list(vocabulary.keys()),
-            index=preprocessed_content['id'].values,
-            data=encoded_articles_matrix.toarray()
+            # postgresql has a maximum number of columns which would be exceeded with two many words as columns,
+            # so store them all as an array
+            columns=['encoded'],
+            index=preprocessed_content['id'].values
         )
+
+        encoded_articles_dataframe['encoded'] = encoded_articles_matrix.toarray().tolist()
 
         encoded_articles_dataframe = encoded_articles_dataframe.reset_index().rename(columns={'index': 'id'})
 
         # Fully replace tf-idf table if vocabulary has been built again from scratch and the dimensions of the matrix
         # will have changed
-        if_exists = 'append' if self._use_existing_vocab else 'replace'
+        if not self._use_existing_vocab:
+            self._db_connection.execute_database_operation('TRUNCATE TABLE encoded_articles.tfidf_representation;')
 
         self._db_connection.upload_dataframe(
             dataframe=encoded_articles_dataframe,
             table_name='tfidf_representation',
             schema='encoded_articles',
-            if_exists=if_exists,
+            if_exists='append',
             index=False
         )
 
@@ -193,23 +189,20 @@ class TfidfEncoder:
 
         Parameters
         ----------
-        similarity_threshold : float in interval (0,1)
+        similarity_threshold : float in interval [0,1)
             Cosine similarity score which the two articles must exceed to be classed as similar.
             Has to fall between 0 and 1.
 
         Raises
         ------
         ValueError
-            If similarity_threshold does not adhere to 0 < similarity_threshold < 1.
+            If similarity_threshold does not adhere to 0 <= similarity_threshold < 1.
         """
 
-        if not 0 < similarity_threshold < 1:
-            raise ValueError("similarity_threshold should be between 0 and 1 (non-inclusive)")
+        if not 0 <= similarity_threshold < 1:
+            raise ValueError("similarity_threshold should be between 0 <= threshold < 1")
 
-        df_similarity = self._db_connection.get_dataframe(
-            table_name='tfidf_similarity',
-            schema='encoded_articles'
-        ).set_index('id')
+        df_similarity = self._calculate_similarities()
 
         df_similarity_array = df_similarity.values
 
@@ -244,3 +237,16 @@ class TfidfEncoder:
             if_exists='append',
             index=False
         )
+
+
+if __name__ == '__main__':
+
+    print('Initialising class for encoding articles using tf-idf')
+    tfidf_encoder = TfidfEncoder(use_existing_vocab=False)
+
+    print('Represent all articles using tf-idf')
+    tfidf_encoder.encode_articles()
+
+    print('Calculate cosine similarity matrix between all articles and Save pairs of articles which are similar to '
+          'one another')
+    tfidf_encoder.store_most_similar_articles(similarity_threshold=0.05)

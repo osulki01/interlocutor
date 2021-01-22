@@ -3,9 +3,11 @@ Testing the encoding/embedding of text so it is represented in a form which can 
 """
 
 # Standard libraries
+import ast
 import os
 
 # Third party libraries
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -65,25 +67,24 @@ class TestTfidfEncoder:
 
         pd.testing.assert_frame_equal(actual_vocabulary, expected_vocabulary)
 
-    @pytest.mark.integration
-    def test_calculate_and_save_similarities(self, monkeypatch):
-        """Cosine similarity matrix is calculated and saved to database correctly."""
+    def test_calculate_similarities(self, monkeypatch):
+        """Cosine similarity matrix is calculated correctly."""
 
         def mock_tfidf_encoding(**kwargs):
             """Mock an encoded version of different articles. Use 1's and 0's for simplicity."""
 
             # Dataframe with encoded articles based upon a vocabulary of 4 words
             return pd.DataFrame(
-                columns=['id', 'apple', 'banana', 'cherry', 'lime'],
+                columns=['id', 'encoded'],
                 data=[
                     # Article 1 and 2 should be identical
-                    ['article_1', 1, 0, 0, 0],
-                    ['article_2', 1, 0, 0, 0],
+                    ['article_1', [1, 0, 0, 0]],
+                    ['article_2', [1, 0, 0, 0]],
                     # Article 3 and 4 are similar but not identical
-                    ['article_3', 0, 0, 1, 0],
-                    ['article_4', 0, 1, 1, 0],
+                    ['article_3', [0, 0, 1, 0]],
+                    ['article_4', [0, 1, 1, 0]],
                     # Article_5 is not similar to any
-                    ['article_5', 0, 0, 0, 1],
+                    ['article_5', [0, 0, 0, 1]],
                 ]
             )
 
@@ -92,24 +93,7 @@ class TestTfidfEncoder:
         monkeypatch.setattr(tfidf_encoder._db_connection, 'get_dataframe', mock_tfidf_encoding)
 
         # Analyse and save the similarity between all of the articles against one another
-        tfidf_encoder.calculate_and_save_similarities()
-
-        # Check data that was uploaded to database
-        db_connection = postgresql.DatabaseConnection()
-        db_connection._create_connection()
-
-        with db_connection._conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM encoded_articles.tfidf_similarity;")
-
-            table_tuples = cursor.fetchall()
-            actual_similarity = pd.DataFrame(
-                data=table_tuples,
-                columns=['id', 'article_1', 'article_2', 'article_3', 'article_4', 'article_5'])
-
-            # Tidy up and revert to original version of database
-            cursor.execute("DROP TABLE encoded_articles.tfidf_similarity;")
-
-            db_connection._conn.commit()
+        actual_similarity = tfidf_encoder._calculate_similarities()
 
         # Check output, cosine similarity calculated using
         # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise.cosine_similarity.html
@@ -125,9 +109,9 @@ class TestTfidfEncoder:
                 # Article_5 is not similar to any
                 ['article_5', 0.0, 0.0, 0.0, 0.0, 1.0],
             ]
-        )
+        ).set_index('id')
 
-        pd.testing.assert_frame_equal(actual_similarity, expected_similarity)
+        pd.testing.assert_frame_equal(actual_similarity, expected_similarity, check_names=False)
 
     @pytest.mark.parametrize("use_existing_vocab", [True, False])
     @pytest.mark.integration
@@ -136,6 +120,14 @@ class TestTfidfEncoder:
         Articles are represented with a tf-idf matrix either using a pre-existing dictionary or one which has been
         rebuilt.
         """
+
+        db_connection = postgresql.DatabaseConnection()
+        db_connection._create_connection()
+
+        # Clear existing staging data
+        with db_connection._conn.cursor() as cursor:
+            cursor.execute("TRUNCATE TABLE encoded_articles.tfidf_representation;")
+            db_connection._conn.commit()
 
         # Load what we are expecting to see, which is the tf-idf representation of the only article which has already
         # been bag-of-words preprocessed in the staging data: daily_mail.article_content_bow_preprocessed
@@ -161,9 +153,6 @@ class TestTfidfEncoder:
         tfidf_encoder = encoding.TfidfEncoder(use_existing_vocab=use_existing_vocab)
         tfidf_encoder.encode_articles()
 
-        db_connection = postgresql.DatabaseConnection()
-        db_connection._create_connection()
-
         with db_connection._conn.cursor() as cursor:
             cursor.execute("SELECT * FROM encoded_articles.tfidf_representation;")
 
@@ -175,20 +164,13 @@ class TestTfidfEncoder:
         # Tidy up and revert to original version of tables
         with db_connection._conn.cursor() as cursor:
 
-            # tf-idf matrix representation of each article (which was empty to begin with)
-            cursor.execute("DROP TABLE encoded_articles.tfidf_representation;")
+            # tf-idf matrix representation of each article
+            cursor.execute("TRUNCATE TABLE encoded_articles.tfidf_representation;")
             cursor.execute(
                 """
-                CREATE TABLE encoded_articles.tfidf_representation
-                (
-                    id           VARCHAR PRIMARY KEY,
-                    "and"          FLOAT,
-                    content      FLOAT,
-                    other        FLOAT,
-                    preprocessed FLOAT,
-                    "some"         FLOAT,
-                    words        FLOAT
-                );
+                COPY encoded_articles.tfidf_representation
+                FROM '/staging_data/encoded_articles.tfidf_representation.csv'
+                WITH CSV HEADER;
                 """
             )
 
@@ -205,8 +187,12 @@ class TestTfidfEncoder:
             db_connection._conn.commit()
         db_connection._close_connection()
 
-        # Check output
-        pd.testing.assert_frame_equal(actual_tfidf, expected_tfidf)
+        # The encoded values is loaded from the csv as a string, so convert back to an array
+        expected_tfidf_vector = np.array(ast.literal_eval(expected_tfidf['encoded'][0]))
+
+        assert actual_tfidf.index == expected_tfidf.index
+
+        np.testing.assert_almost_equal(actual=actual_tfidf['encoded'][0], desired=expected_tfidf_vector, decimal=6)
 
     @pytest.mark.parametrize("use_existing_vocab", [False, True])
     @pytest.mark.integration
@@ -243,31 +229,22 @@ class TestTfidfEncoder:
 
     @pytest.mark.parametrize('similarity_threshold', [0.5, 0.8])
     @pytest.mark.integration
-    def test_store_most_similar_articles(self, monkeypatch, similarity_threshold):
+    def test_store_most_similar_articles(self, similarity_threshold):
         """Appropriately similar articles are picked up and saved."""
 
-        def mock_similarity_scores(**kwargs):
-            """Mock the similarity scores between articles."""
-
-            return pd.DataFrame(
-                columns=['id', 'article_1', 'article_2', 'article_3', 'article_4', 'article_5'],
-                data=[
-                    # Article 1 and 2 are very similar
-                    ['article_1', 1.0, 0.9, 0.0, 0.0, 0.0],
-                    ['article_2', 0.9, 1.0, 0.0, 0.0, 0.0],
-
-                    # Article 3 and 4 are quite similar
-                    ['article_3', 0.0, 0.0, 1.0, 0.7, 0.0],
-                    ['article_4', 0.0, 0.0, 0.7, 1.0, 0.0]
-                ]
-            )
-
-        # Create encoder which will work with a mock similarity matrix
         tfidf_encoder = encoding.TfidfEncoder()
-        monkeypatch.setattr(tfidf_encoder._db_connection, 'get_dataframe', mock_similarity_scores)
 
         # Check how article pairs are found and saved to database
         tfidf_encoder.store_most_similar_articles(similarity_threshold=similarity_threshold)
+
+        # The tf-idf representation of the data can be found in
+        # Docker/db/staging_data/encoded_articles.tfidf_representation.csv and is stored in the table
+        # encoded_articles.tfidf_representation
+
+        # Using that mock data;
+        # article 1 and 2 should be identical
+        # article 3 and 4 are similar but not identical
+        # article_5 is not similar to any
 
         db_connection = postgresql.DatabaseConnection()
         db_connection._create_connection()
@@ -292,10 +269,10 @@ class TestTfidfEncoder:
             expected_article_pairs = pd.DataFrame(
                 columns=['id', 'similar_article_id', 'similarity_score'],
                 data=[
-                    ['article_1', 'article_2', 0.9],
-                    ['article_2', 'article_1', 0.9],
-                    ['article_3', 'article_4', 0.7],
-                    ['article_4', 'article_3', 0.7]
+                    ['article_1_d36c525d1679623119fd7a', 'article_2_4b2a76b9719d911017c592', 1.0],
+                    ['article_2_4b2a76b9719d911017c592', 'article_1_d36c525d1679623119fd7a', 1.0],
+                    ['article_3_8350295550de7d587bc323', 'article_4_1702e282b59c30e3789ad4', 0.70710],
+                    ['article_4_1702e282b59c30e3789ad4', 'article_3_8350295550de7d587bc323', 0.70710]
                 ]
             )
 
@@ -304,8 +281,8 @@ class TestTfidfEncoder:
             expected_article_pairs = pd.DataFrame(
                 columns=['id', 'similar_article_id', 'similarity_score'],
                 data=[
-                    ['article_1', 'article_2', 0.9],
-                    ['article_2', 'article_1', 0.9],
+                    ['article_1_d36c525d1679623119fd7a', 'article_2_4b2a76b9719d911017c592', 1.0],
+                    ['article_2_4b2a76b9719d911017c592', 'article_1_d36c525d1679623119fd7a', 1.0],
                 ]
             )
 
@@ -316,13 +293,13 @@ class TestTfidfEncoder:
 
         pd.testing.assert_frame_equal(actual_article_pairs, expected_article_pairs)
 
-    @pytest.mark.parametrize('similarity_threshold', [-1, 0, 1, 2])
+    @pytest.mark.parametrize('similarity_threshold', [-1, 1, 2])
     def test_store_most_similar_articles_expects_appropriate_threshold(self, similarity_threshold):
         """Exception is raised if similarity threshold is not between 0 and 1."""
 
         with pytest.raises(
                 expected_exception=ValueError,
-                match=r'similarity_threshold should be between 0 and 1 \(non-inclusive\)'
+                match=r'similarity_threshold should be between 0 <= threshold < 1'
         ):
             tfidf_encoder = encoding.TfidfEncoder()
             tfidf_encoder.store_most_similar_articles(similarity_threshold=similarity_threshold)

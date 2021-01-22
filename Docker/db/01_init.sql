@@ -166,16 +166,16 @@ COMMENT ON COLUMN encoded_articles.tfidf_vocabulary.word IS 'Individual word fro
 COMMENT ON COLUMN encoded_articles.tfidf_vocabulary.feature_matrix_index IS 'Index within the feature matrix';
 
 
--- Placeholder table which will be populated with more columns showing the tf-idf representation of each article
--- This table is populated in staging with each of the words in encoded_articles.tfidf_vocabulary as its columns
--- to test scenarios where data is being appended rather than replacing the whole table
+-- tf-idf encoded version of each article
 CREATE TABLE encoded_articles.tfidf_representation
 (
-    id CHAR(32) PRIMARY KEY
+    id      CHAR(32) PRIMARY KEY,
+    encoded FLOAT ARRAY
 );
 
 COMMENT ON TABLE encoded_articles.tfidf_representation IS 'tf-idf encoded representation of articles.';
 COMMENT ON COLUMN encoded_articles.tfidf_representation.id IS 'Unique identifier (hash of article URL)';
+COMMENT ON COLUMN encoded_articles.tfidf_representation.encoded IS 'tf-idf vector representation of article content. The word that each index applies to can be found in encoded_articles.tfidf_vocabulary';
 
 
 -- Similar article pairs
