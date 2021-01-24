@@ -191,3 +191,42 @@ COMMENT ON TABLE encoded_articles.tfidf_similar_articles IS 'Articles which are 
 COMMENT ON COLUMN encoded_articles.tfidf_similar_articles.id IS 'Unique identifier (hash of article URL)';
 COMMENT ON COLUMN encoded_articles.tfidf_similar_articles.similar_article_id IS 'Unique identifier of similar article';
 COMMENT ON COLUMN encoded_articles.tfidf_similar_articles.similarity_score IS 'Cosine similarity between two articles';
+
+
+-- Unioned view of all articles metadata
+CREATE VIEW encoded_articles.VW_article_metadata AS
+    SELECT
+        id,
+        title,
+        url,
+        'Daily Mail' AS publication
+    FROM
+        daily_mail.article_content
+    UNION
+    SELECT
+        id,
+        web_title      AS title,
+        web_url,
+        'The Guardian' AS publication
+    FROM
+        the_guardian.article_metadata;
+
+
+-- Annotated view of similar article pairs
+CREATE VIEW encoded_articles.VW_tfidf_similar_articles AS
+    SELECT
+        a.id          AS starting_article_id,
+        b.publication AS starting_article_publication,
+        b.title       AS starting_article_title,
+        b.url         AS starting_article_url,
+        a.similar_article_id,
+        c.publication AS similar_article_publication,
+        c.title       AS similar_article_title,
+        c.url         AS similar_article_url,
+        a.similarity_score
+    FROM
+        encoded_articles.tfidf_similar_articles a
+            LEFT JOIN encoded_articles.VW_article_metadata b
+                      ON a.id = b.id
+            LEFT JOIN encoded_articles.VW_article_metadata c
+                      ON a.similar_article_id = c.id;
