@@ -247,6 +247,6 @@ if __name__ == '__main__':
     print('Represent all articles using tf-idf')
     tfidf_encoder.encode_articles()
 
-    print('Calculate cosine similarity matrix between all articles and Save pairs of articles which are similar to '
+    print('Calculate cosine similarity matrix between all articles and save pairs of articles which are similar to '
           'one another')
-    tfidf_encoder.store_most_similar_articles(similarity_threshold=0.05)
+    tfidf_encoder.store_most_similar_articles(similarity_threshold=0)
