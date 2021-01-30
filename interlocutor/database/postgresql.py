@@ -252,6 +252,46 @@ class DatabaseConnection:
 
         return min_or_max_column[min_or_max].values[0]
 
+    def is_value_already_in_table(self, value: Any, table_name: str, schema: str, column: str) -> bool:
+        """
+        Check whether a value already exists in the column of a database table.
+
+        Parameters
+        ----------
+        value : Any
+            Item to check whether it already exists in the table. Should match the data type in the column.
+        table_name : str
+            Name of table being checked.
+        schema : str (default None)
+            Name of schema in which the table sits.
+        column : str
+            Column in which to check whether the value already exists.
+
+        Returns
+        -------
+        bool
+            True if the value already exists, False otherwise.
+        """
+
+        sql_query = psy_sql.SQL(
+            "SELECT EXISTS (SELECT 1 FROM {schema_and_table} WHERE {column} = %(value)s LIMIT 1);"
+        ).format(
+            schema_and_table=psy_sql.Identifier(schema, table_name),
+            column=psy_sql.Identifier(column)
+        )
+
+        self._create_connection()
+
+        with self._conn.cursor() as curs:
+            curs.execute(query=sql_query, vars={'value': value})
+            result = curs.fetchone()[0]
+            self._conn.commit()
+
+        self._close_connection()
+
+        # Identify whether anything was returned
+        return result
+
     def upload_dataframe(
             self,
             dataframe: pd.DataFrame,
@@ -290,7 +330,7 @@ class DatabaseConnection:
         """
         Write contents of a pandas DataFrame to an existing table on postgres database, but only insert new rows.
 
-        This is not an insert statement, not an upsert, so rows which share the same ID as an existing entry are simply
+        This is an insert statement, not an upsert, so rows which share the same ID as an existing entry are simply
         ignored rather than updating existing entries in the target table.
 
         Parameters

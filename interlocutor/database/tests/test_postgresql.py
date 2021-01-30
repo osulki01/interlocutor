@@ -204,6 +204,20 @@ def test_get_min_or_max_from_column():
     assert actual_max == expected_max
 
 
+@pytest.mark.parametrize("value,expected_output", [('First value', True), ('non-existent value', False)])
+def test_is_value_already_in_table(value, expected_output):
+    """Value is correctly identified as existing or not in a database table."""
+
+    db_connection = postgresql.DatabaseConnection()
+
+    assert db_connection.is_value_already_in_table(
+        value=value,
+        table_name='testing_table',
+        schema='testing_schema',
+        column='example_string'
+    ) == expected_output
+
+
 def test_upload_dataframe():
     """Dataframe is successfully written to a permanent postgres table."""
 
