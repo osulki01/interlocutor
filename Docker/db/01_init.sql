@@ -148,6 +148,73 @@ COMMENT ON COLUMN daily_mail.article_content_bow_preprocessed.processed_content 
 
 
 ---------------------------------------------------
+-- I NEWS ARTICLES
+---------------------------------------------------
+
+CREATE SCHEMA i_news;
+GRANT ALL PRIVILEGES ON SCHEMA i_news TO $POSTGRES_USER;
+
+-- Columnists
+CREATE TABLE i_news.columnists
+(
+    columnist VARCHAR PRIMARY KEY,
+    homepage  VARCHAR
+);
+
+COMMENT ON TABLE i_news.columnists IS 'Columnist names and their homepage on the website.';
+COMMENT ON COLUMN i_news.columnists.columnist IS 'Name of the writer';
+COMMENT ON COLUMN i_news.columnists.homepage IS 'URL of the columnist homepage';
+
+
+-- Links to recent articles by each columnist
+CREATE TABLE i_news.columnist_article_links
+(
+    columnist  VARCHAR,
+    article_id CHAR(32) PRIMARY KEY,
+    url        VARCHAR
+);
+
+COMMENT ON TABLE i_news.columnist_article_links IS 'Links to recent articles by columnist.';
+COMMENT ON COLUMN i_news.columnist_article_links.columnist IS 'Name of the writer';
+COMMENT ON COLUMN i_news.columnist_article_links.article_id IS 'Hash of url to create unique identifier of fixed length';
+COMMENT ON COLUMN i_news.columnist_article_links.url IS 'Link to the article';
+
+
+-- Content for recent articles by each columnist
+CREATE TABLE i_news.article_content
+(
+    id      CHAR(32) PRIMARY KEY,
+    url     VARCHAR,
+    title   VARCHAR,
+    content VARCHAR,
+    CONSTRAINT fk_id
+      FOREIGN KEY(id)
+	  REFERENCES i_news.columnist_article_links(article_id)
+);
+
+COMMENT ON TABLE i_news.article_content IS 'Text content of recent articles by columnists.';
+COMMENT ON COLUMN i_news.article_content.id IS 'Hash of url to create unique identifier of fixed length';
+COMMENT ON COLUMN i_news.article_content.url IS 'Link to article';
+COMMENT ON COLUMN i_news.article_content.title IS 'Title of article';
+COMMENT ON COLUMN i_news.article_content.content IS 'Text content of article';
+
+
+-- Preprocessed content for recent articles by each columnist for use in bag of words models
+CREATE TABLE i_news.article_content_bow_preprocessed
+(
+    id      CHAR(32) PRIMARY KEY,
+    processed_content VARCHAR,
+    CONSTRAINT fk_id
+      FOREIGN KEY(id)
+	  REFERENCES i_news.article_content(id)
+);
+
+COMMENT ON TABLE i_news.article_content_bow_preprocessed IS 'Text content of recent articles by columnists.';
+COMMENT ON COLUMN i_news.article_content_bow_preprocessed.id IS 'Unique identifier (hash of article URL)';
+COMMENT ON COLUMN i_news.article_content_bow_preprocessed.processed_content IS 'Processed text content of article';
+
+
+---------------------------------------------------
 -- ENCODED REPRESENTATIONS OF ARTICLE CONTENT
 ---------------------------------------------------
 

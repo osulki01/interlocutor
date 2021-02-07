@@ -50,6 +50,19 @@ COPY daily_mail.article_content_bow_preprocessed
 
 
 ---------------------------------------------------
+-- I NEWS ARTICLES
+---------------------------------------------------
+
+COPY i_news.columnists FROM '/staging_data/i_news.columnists.csv' WITH CSV HEADER;
+COPY i_news.columnist_article_links
+    FROM '/staging_data/i_news.columnist_article_links.csv' WITH CSV HEADER;
+COPY i_news.article_content
+    FROM '/staging_data/i_news.article_content.csv' WITH CSV HEADER;
+COPY i_news.article_content_bow_preprocessed
+    FROM '/staging_data/i_news.article_content_bow_preprocessed.csv' WITH CSV HEADER;
+
+
+---------------------------------------------------
 -- ENCODED REPRESENTATIONS OF ARTICLE CONTENT
 ---------------------------------------------------
 
