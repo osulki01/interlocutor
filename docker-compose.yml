@@ -12,6 +12,7 @@ services:
       - Docker/environment_variables/.env.dev
     environment:
       - DEPLOYMENT_ENVIRONMENT=dev
+    # For jupyter notebook development
     ports:
       - "8888:8888"
     volumes:
@@ -85,3 +86,19 @@ services:
     # Ensure production data persists in the local filesystem and is available to the container in its expected location
     volumes:
       - ./data/postgres/prd:/var/lib/postgresql/data
+
+  neo4j_stg:
+    build:
+      # Deployment environment is needed at point of building image and when running container
+      args:
+        - DEPLOYMENT_ENVIRONMENT=stg
+      context: Docker
+      dockerfile: neo4j/Dockerfile
+    container_name: neo4j_stg
+    env_file:
+      - Docker/environment_variables/.env.stg
+    # 7474 is the HTTP port and means we can connect to our database with Neo4j Browser
+    # 7687 is the Bolt port and means efficient & type-safe communication requests between other layers and the database
+    ports:
+      - "7474:7474"
+      - "7687:7687"
