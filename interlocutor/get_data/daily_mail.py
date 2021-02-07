@@ -25,12 +25,12 @@ class ArticleDownloader:
 
         self._base_url = 'https://www.dailymail.co.uk'
         self._columnist_section_url = 'https://www.dailymail.co.uk/columnists/index.html'
-
         self._db_connection = postgresql.DatabaseConnection()
 
     @staticmethod
     def _get_article_title_and_content(url) -> Tuple[str, str]:
         """
+        Extract the title and content of an article based on its URL.
 
         Parameters
         ----------
