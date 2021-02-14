@@ -47,18 +47,23 @@ class ArticleDownloader:
 
         article_soup = BeautifulSoup(markup=article_page.content, features="html.parser")
 
-        # Extract title, which needs parsing as it follows convention '<Author>: <Title> | Daily Mail Online'
-        title = article_soup.find("title").getText()
-        title = title.split(': ')[-1]
-        title = title.replace(' | Daily Mail Online', '').strip()
+        article_section = article_soup.find(name="article")
 
-        # Extract the text content
-        article_body = article_soup.find("div", {"itemprop": "articleBody"})
-        raw_content = article_body.findAll(attrs={'class': 'mol-para-with-font'})
+        title = article_section.find(name="h1", attrs={"class": "headline"}).getText()
+
+        article_body = article_soup.find(name="div", attrs={"class": "article-padding article-content"})
+
+        raw_content = article_body.findAll(name="p")
         processed_content = []
 
-        for line in raw_content:
-            processed_content.append(line.text)
+        for content in raw_content:
+
+            # Check the paragraph is not exclusively a link to another article
+            parent_element = content.findParent()
+            if parent_element.name == 'div' and parent_element['class'] == ['inews__shortcode-readmore__text']:
+                continue
+
+            processed_content.append(content.text)
 
         return title, ' '.join(processed_content)
 
